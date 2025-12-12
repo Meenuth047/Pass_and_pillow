@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pass the Pillow Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus, input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .duration-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .duration-btn {
+            flex: 1;
+            min-width: 80px;
+            padding: 12px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .duration-btn:hover {
+            background: #f0f0ff;
+        }
+
+        .duration-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .play-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-bottom: 20px;
+        }
+
+        .play-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .play-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .player-container {
+            margin-top: 20px;
+            display: none;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .player-container.active {
+            display: block;
+        }
+
+        audio {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .status.playing {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.stopped {
+            background: #f8d7da;
+            color: #721c24;
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info p {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 5px;
+        }
+
+        .stop-btn {
+            width: 100%;
+            padding: 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .stop-btn:hover {
+            background: #c82333;
+        }
+
+        .preset-songs {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .song-btn {
+            padding: 12px;
+            background: #f0f0f0;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.3s;
+        }
+
+        .song-btn:hover {
+            background: #e7f3ff;
+            border-color: #667eea;
+        }
+
+        .song-btn.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Pass the Pillow</h1>
+        <p class="subtitle">Play music that stops randomly!</p>
+
+        <div class="info">
+            <p><strong>How to play:</strong></p>
+            <p>1. Choose your music source (file upload or preset songs)</p>
+            <p>2. Select when the music should stop</p>
+            <p>3. Pass the pillow until the music stops!</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" data-tab="upload">Upload Music</button>
+            <button class="tab" data-tab="preset">Preset Songs</button>
+        </div>
+
+        <div id="uploadTab" class="tab-content active">
+            <div class="input-group">
+                <label>Upload Music File (MP3, WAV, etc.):</label>
+                <input type="file" id="audioFile" accept="audio/*">
+            </div>
+        </div>
+
+        <div id="presetTab" class="tab-content">
+            <div class="input-group">
+                <label>Select a Preset Song:</label>
+                <div class="preset-songs">
+                    <button class="song-btn" data-url="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">
+                        🎵 Sample Song 1 (Upbeat)
+                    </button>
+                    <button class="song-btn" data-url="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3">
+                        🎵 Sample Song 2 (Electronic)
+                    </button>
+                    <button class="song-btn" data-url="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3">
+                        🎵 Sample Song 3 (Rock)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>Stop music after (random between):</label>
+            <div class="duration-options">
+                <button class="duration-btn active" data-min="10" data-max="20">10-20s</button>
+                <button class="duration-btn" data-min="20" data-max="30">20-30s</button>
+                <button class="duration-btn" data-min="30" data-max="40">30-40s</button>
+                <button class="duration-btn" data-min="40" data-max="60">40-60s</button>
+            </div>
+        </div>
+
+        <button class="play-btn" id="startBtn">Start Game 🎮</button>
+
+        <div class="player-container" id="playerContainer">
+            <audio id="audioPlayer" controls></audio>
+            <button class="stop-btn" id="stopBtn">Stop Music Manually</button>
+        </div>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        let minDuration = 10;
+        let maxDuration = 20;
+        let stopTimeout = null;
+        let currentAudioUrl = null;
+
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const durationBtns = document.querySelectorAll('.duration-btn');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const audioFile = document.getElementById('audioFile');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const playerContainer = document.getElementById('playerContainer');
+        const statusDiv = document.getElementById('status');
+        const songBtns = document.querySelectorAll('.song-btn');
+
+        // Tab switching
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(tc => tc.classList.remove('active'));
+                tab.classList.add('active');
+                const tabId = tab.dataset.tab + 'Tab';
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // Duration selection
+        durationBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                durationBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                minDuration = parseInt(btn.dataset.min);
+                maxDuration = parseInt(btn.dataset.max);
+            });
+        });
+
+        // Preset song selection
+        songBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                songBtns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                currentAudioUrl = btn.dataset.url;
+            });
+        });
+
+        // File upload
+        audioFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                currentAudioUrl = URL.createObjectURL(file);
+            }
+        });
+
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function getRandomDuration() {
+            return Math.floor(Math.random() * (maxDuration - minDuration + 1)) + minDuration;
+        }
+
+        function stopMusic() {
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+            showStatus('🛑 Music Stopped! Who has the pillow?', 'stopped');
+            if (stopTimeout) {
+                clearTimeout(stopTimeout);
+                stopTimeout = null;
+            }
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!currentAudioUrl) {
+                alert('Please upload a music file or select a preset song!');
+                return;
+            }
+
+            audioPlayer.src = currentAudioUrl;
+            playerContainer.classList.add('active');
+            
+            audioPlayer.play().then(() => {
+                const duration = getRandomDuration();
+                showStatus(`🎵 Music Playing! Will stop in ${duration} seconds...`, 'playing');
+
+                if (stopTimeout) clearTimeout(stopTimeout);
+                stopTimeout = setTimeout(() => {
+                    stopMusic();
+                }, duration * 1000);
+            }).catch(err => {
+                showStatus('❌ Error playing audio. Try a different file!', 'stopped');
+                console.error(err);
+            });
+        });
+
+        stopBtn.addEventListener('click', stopMusic);
+    </script>
+</body>
+</html>
