@@ -455,6 +455,7 @@ class TestPassThePillow(unittest.TestCase):
         self.assertIn('parseLrcForHook', self.html_content)
         self.assertIn('nowPlayingHook', self.html_content)
         self.assertIn('data-start="32"', self.html_content)
+        self.assertIn('seekSpotifyPlayback', self.html_content)
 
     # -------------------------------------------------------------------------
     # 7. Local HTTP Server Integration Test
