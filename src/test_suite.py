@@ -375,9 +375,8 @@ class TestPassThePillow(unittest.TestCase):
         required_phrases = [
             "Pass the Pillow",
             "https://pass-and-pillow.onrender.com",
-            "Option 1",
-            "Option 2",
-            "b9df1dea7f174af197b814956f500fd8",
+            "Play with Your Own Spotify App & Personal Songs",
+            "100% Free YouTube Mode",
             "Spotify Premium",
             "Architecture and Technology Choices",
         ]
