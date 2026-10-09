@@ -1679,6 +1679,30 @@
             return result;
         }
 
+        async function seekSpotifyPlayback(positionMs, deviceId) {
+            if (!positionMs || positionMs <= 0) return;
+
+            const sendSeek = async () => {
+                try {
+                    const params = new URLSearchParams({ position_ms: Math.round(positionMs) });
+                    if (deviceId) params.append('device_id', deviceId);
+                    await spotifyFetch(`/me/player/seek?${params.toString()}`, { method: 'PUT' });
+                } catch (e) {
+                    // Ignore non-fatal seek errors
+                }
+                if (spotifyPlayerInstance) {
+                    try { await spotifyPlayerInstance.seek(positionMs); } catch (e) {}
+                }
+            };
+
+            // Immediate seek + retries at 350ms, 800ms, and 1400ms
+            // Guarantees Spotify mobile app and Connect devices seek to chorus as soon as audio buffers
+            sendSeek();
+            setTimeout(sendSeek, 350);
+            setTimeout(sendSeek, 800);
+            setTimeout(sendSeek, 1400);
+        }
+
         async function startSpotifyRound() {
             if (selectedPlaylistEligibleTracks.length === 0) {
                 showStatus('Cannot start game: No playable tracks in selected playlist.', 'error');
@@ -1750,7 +1774,8 @@
                         }
                     }
 
-                    // Playback successfully sent!
+                    // Playback successfully started! Guarantee seek to chorus/hook across all devices
+                    seekSpotifyPlayback(positionMs, deviceId);
                     break;
                 } catch (err) {
                     console.warn(`Playback attempt ${attempt} failed for track ${chosenTrack.name}:`, err);
@@ -1843,13 +1868,19 @@
                     }
                 }
 
+                await audioPlayer.play();
                 if (startSec > 0) {
                     try {
                         audioPlayer.currentTime = startSec;
                     } catch (e) {}
+                    setTimeout(() => {
+                        try {
+                            if (audioPlayer.currentTime < 5) {
+                                audioPlayer.currentTime = startSec;
+                            }
+                        } catch (e) {}
+                    }, 250);
                 }
-
-                await audioPlayer.play();
                 isPlaying = true;
                 isStarting = false;
                 startBtn.disabled = false;
