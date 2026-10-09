@@ -105,7 +105,23 @@ To connect Spotify, you must register a free application in the Spotify Develope
 
 ## Development and Testing Guidance
 
-### Running Locally
+### Live Deployment on Render (Mobile and Web)
+
+For public access on mobile phones or other devices without running a local server:
+
+1. Log in to the Render Dashboard at https://dashboard.render.com.
+2. Click "New +" and select "Static Site".
+3. Connect your repository.
+4. Set Publish Directory to `.` and leave Build Command blank.
+5. Click "Create Static Site".
+6. Copy your live Render URL (for example: `https://your-service-name.onrender.com`).
+7. In the Spotify Developer Dashboard (https://developer.spotify.com/dashboard), add your live Render URL to your app Redirect URIs:
+   - `https://your-service-name.onrender.com/`
+   - `https://your-service-name.onrender.com/index.html`
+
+A `render.yaml` configuration file is included in the repository for automated Render Blueprint deployment.
+
+### Local Development (Optional)
 
 To run the application locally using Python standard library:
 
@@ -117,7 +133,7 @@ cd /path/to/Pass_and_pillow
 python3 -m http.server 8000
 
 # Open in your browser:
-# http://127.0.0.1:8000/main.html
+# http://127.0.0.1:8000/
 ```
 
 ### Running Test Verification
