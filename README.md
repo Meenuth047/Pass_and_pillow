@@ -1,163 +1,144 @@
-# Pass_and_pillow
-# 🎵 Pass the Pillow Game
+# Pass the Pillow
 
-A fun party game where music plays and stops randomly! Perfect for gatherings with friends and family.
+Pass the Pillow is an automated, web-based party game application designed to eliminate bias and keep classic party games fair and unpredictable.
 
-## 🎮 What is Pass the Pillow?
+## Origin Story
 
-Pass the Pillow is a classic party game where players pass a pillow (or any object) around in a circle while music plays. When the music stops randomly, whoever is holding the pillow is either eliminated or wins - depending on your house rules!
+The project originated during a gathering with friends and family. A group decided to play the classic party game "Pass the Pillow", but the traditional setup required a designated person to manually play and pause music. This created an unavoidable fairness issue: the person controlling the music could anticipate or observe who held the pillow and deliberately choose when to pause, influencing the outcome of the round. 
 
-## ✨ Features
+Searching online for an automated tool revealed plenty of generic countdown timers, but none tailored specifically to this use case--namely, an app that plays real music from a playlist at random and halts abruptly at an unpredictable moment without human intervention. This project was built to solve that problem, giving every player, including the host, an equal opportunity to participate.
 
-- 🎵 **Multiple Music Sources**: Upload your own audio files or use preset songs
-- ⏱️ **Random Stop Timer**: Choose from 4 different time ranges (10-20s, 20-30s, 30-40s, 40-60s)
-- 🎨 **Beautiful UI**: Clean, modern design with gradient backgrounds
-- 📱 **Responsive**: Works on desktop, tablet, and mobile devices
-- 🔊 **Audio Player**: Built-in player with standard controls
-- 🛑 **Manual Stop**: Option to stop music manually if needed
+## How the Game Works
 
-## 🚀 How to Use
+1. Players sit in a circle and designate a pillow (or ball, toy, or other object) to pass.
+2. The game host connects a music source (Spotify playlist, local audio file, or preset samples).
+3. The host chooses a randomized duration range (10-20 seconds, 20-30 seconds, 30-40 seconds, or 40-60 seconds).
+4. When the host presses "Start Game", an eligible track is selected at random and begins playing.
+5. Players pass the pillow in a circle.
+6. The timer stops the music automatically at a random instant within the selected range, displaying the prompt: "Music stopped. Who has the pillow?"
+7. The player caught holding the pillow is eliminated or receives a round penalty, according to house rules.
 
-### Option 1: Upload Your Own Music
+## Feature Matrix
 
-1. Click on the **"Upload Music"** tab
-2. Click **"Choose File"** and select an audio file (MP3, WAV, etc.)
-3. Choose your preferred stop duration (10-20s, 20-30s, 30-40s, or 40-60s)
-4. Click **"Start Game"** 🎮
-5. Pass the pillow around!
-6. When the music stops, whoever has the pillow is out (or wins)!
+### Implemented Features
 
-### Option 2: Use Preset Songs
+- Spotify OAuth 2.0 PKCE Authorization: Secure, browser-only public client flow without client secrets. Includes CSRF state validation, callback handling, token storage, automatic token refreshing, and complete session disconnect.
+- User Playlists Retrieval: Full playlist loading with API pagination, cover art, and total track counts.
+- Playlist Preview: Live inspection of the selected playlist including cover image, title, total tracks, eligible playable tracks count, and scrollable track list with title and artist information.
+- Intelligent Random Track Selection:
+  - Selects uniformly from eligible, playable, non-local tracks.
+  - Guaranteed non-repetition across consecutive rounds when two or more eligible tracks exist.
+  - Session history tracking that prioritizes unplayed tracks during the active session.
+  - Graceful single-track handling: Permits repetition with explanatory UI notice if a playlist has only one playable track.
+  - Graceful zero-track handling: Warns user and prevents game start if a playlist is empty.
+  - Bounded retry: Retries up to 3 alternative tracks if a selected track fails playback due to API or network errors.
+  - Automatic session history reset when changing playlists or clicking Reset History.
+- Spotify Playback Methods:
+  - Spotify Web Playback SDK: In-browser streaming player for supported desktop browsers.
+  - Spotify Connect Web API: Device discovery and remote playback control for open Spotify apps (desktop, mobile, smart speakers).
+- Configurable Randomized Stop Intervals: Four duration ranges (10-20s, 20-30s, 30-40s, 40-60s), with endpoints inclusive.
+- Precise Playback Verification: Timers trigger only after audio playback is confirmed active.
+- Automated Stop and Emergency Manual Stop: Halts audio and clears all timeouts cleanly.
+- Race Condition and Stale Timer Guards: Disables start button during initialization, clears timers on playlist switch, mode change, stop, and session disconnect.
+- Truthful State Display: Visual states for disconnected, loading, ready, starting, playing, stopped, and error.
+- Offline and Local Audio Fallback: Retains local file upload (MP3, WAV, OGG) and preset sample audio streams for offline play or accounts without Spotify Premium.
 
-1. Click on the **"Preset Songs"** tab
-2. Select one of the available sample songs
-3. Choose your preferred stop duration
-4. Click **"Start Game"** 🎮
-5. Start passing the pillow!
+### Planned Features
 
-## 🎯 Game Rules
+- Multiplayer scorekeeping and player elimination brackets.
+- Sound effects for countdowns and buzzer tones.
+- Custom stop duration range sliders.
+- Collaborative playlist voting and party room sharing via WebRTC.
 
-### Classic Rules
-- Players sit in a circle
-- Pass the pillow clockwise when music plays
-- When music stops, the person holding the pillow is **eliminated**
-- Last person remaining wins!
+## Architecture and Technology Choices
 
-### Alternative Rules
-- The person holding the pillow when music stops **wins** the round
-- Play multiple rounds and keep score
-- Add forfeits or challenges for eliminated players
-- Use different objects (ball, toy, etc.)
+The application is structured as a client-side Single-Page Application (SPA) contained within `main.html`:
 
-## 🎵 Music Recommendations
+- Vanilla HTML5, CSS3, and JavaScript: Eliminates complex build tools, external runtime dependencies, bundlers, and backend servers.
+- Web Crypto API: Provides cryptographically secure random values and SHA-256 digest calculation for PKCE code verifiers and code challenges (`crypto.getRandomValues`, `crypto.subtle.digest`).
+- Spotify Web API: Communicates via HTTP requests (`fetch`) for user profile, playlist retrieval, device enumeration, and playback control (`/v1/me/player/play`, `/v1/me/player/pause`).
+- Spotify Web Playback SDK (`https://sdk.scdn.co/spotify-player.js`): Creates a local browser playback device for desktop environments.
+- HTML5 Audio API: Powers the offline fallback player via `URL.createObjectURL(file)` and native `<audio>` element controls.
 
-For the best experience, use:
-- Upbeat, fast-paced songs
-- Popular Bollywood hits
-- Party music
-- Songs everyone knows
+## Spotify Integration and Setup
 
-**Tip**: Create a playlist of your favorite party songs and play different ones each round!
+### Spotify Developer Dashboard Configuration
 
-## 💻 Technical Details
+To connect Spotify, you must register a free application in the Spotify Developer Dashboard:
 
-### File Support
-- **Audio Formats**: MP3, WAV, OGG, AAC, and most common audio formats
-- **File Size**: Recommended under 10MB for best performance
-- **Browser**: Works on all modern browsers (Chrome, Firefox, Safari, Edge)
+1. Log in to the Spotify Developer Dashboard at https://developer.spotify.com/dashboard.
+2. Click "Create App".
+3. Provide an App name (for example, "Pass the Pillow") and App description.
+4. Set the Redirect URI to the exact address where the app is hosted.
+   - For local development: `http://127.0.0.1:8000/main.html` or `http://localhost:8000/main.html`.
+5. Select the "Web API" and "Web Playback SDK" checkboxes under Which APIs are you planning to use.
+6. Accept the Developer Terms of Service and save the app.
+7. Copy your Client ID from the app overview page.
 
-### How It Works
-1. Upload or select music
-2. Music plays for a random duration within your selected range
-3. Timer automatically stops the music
-4. Visual and text feedback shows game status
+### Connecting in Pass the Pillow
 
-## 🛠️ Installation
+1. Open `main.html` in your web browser.
+2. In the Spotify tab, paste your Client ID into the input field.
+3. Click "Connect with Spotify".
+4. Authorize the requested permissions on the Spotify login screen.
+5. You will be redirected back to the application with an authorization code, which is exchanged for an access token automatically.
 
-### Option 1: Direct Use
-Simply open the HTML file in any modern web browser. No installation needed!
+### Account and Device Limitations
 
-### Option 2: Host on a Server
+- Spotify Premium Requirement: Spotify API playback control (`/v1/me/player/play`, `/v1/me/player/pause`) and the Spotify Web Playback SDK strictly require a Spotify Premium subscription. Free Spotify accounts will receive a 403 Forbidden ("Premium required") error from Spotify API. This is an official restriction enforced by Spotify.
+- Mobile Web Browser Playback: The Spotify Web Playback SDK relies on Encrypted Media Extensions (EME), which are not supported in mobile web browsers (such as Safari on iOS or Chrome on Android). To play on a mobile device, launch the official Spotify mobile app on your phone, open Pass the Pillow in your mobile browser, and select your phone as the playback device from the device dropdown.
+- Public Client Scopes: The application requests minimal required scopes:
+  - `streaming`
+  - `user-read-email`
+  - `user-read-private`
+  - `playlist-read-private`
+  - `playlist-read-collaborative`
+  - `user-modify-playback-state`
+  - `user-read-playback-state`
+
+## Security and Privacy
+
+- No Client Secret: In accordance with OAuth 2.0 PKCE standards for public browser clients, no client secret is used, stored, or committed.
+- State Validation: An unpredictable cryptographic state parameter is generated per authorization request and verified upon callback to prevent CSRF attacks.
+- Client-Side Token Storage: Tokens are saved strictly in your browser local storage. They are never sent to any third-party server.
+- One-Click Disconnect: Clicking "Disconnect" purges all access tokens, refresh tokens, and session identifiers from storage and disconnects the player instance.
+
+## Development and Testing Guidance
+
+### Running Locally
+
+To run the application locally using Python standard library:
+
 ```bash
-# Place the HTML file in your web server directory
-# Access via: http://yourdomain.com/pass-the-pillow.html
+# Navigate to the project directory
+cd /path/to/Pass_and_pillow
+
+# Start a local HTTP server
+python3 -m http.server 8000
+
+# Open in your browser:
+# http://127.0.0.1:8000/main.html
 ```
 
-### Option 3: Local Development
+### Running Test Verification
+
+The repository includes an automated verification test suite:
+
 ```bash
-# Save the file as index.html
-# Open with any browser or use a local server:
-
-# Using Python
-python -m http.server 8000
-
-# Using Node.js (http-server)
-npx http-server
-
-# Then open: http://localhost:8000
+python3 test_suite.py
 ```
 
-## 🎨 Customization
+This tests HTML structure, UI elements, PKCE generation, track selection algorithms, timer math, consecutive non-repetition guarantees, single-track fallbacks, retry limits, and documentation formatting.
 
-You can easily customize the game by modifying:
+## Official Spotify Documentation References
 
-- **Colors**: Change the gradient colors in the CSS
-- **Duration Options**: Add more time range options
-- **Preset Songs**: Replace preset song URLs with your own
-- **Styling**: Modify button styles, fonts, and layouts
-
-## 📱 Browser Compatibility
-
-- ✅ Chrome (recommended)
-- ✅ Firefox
-- ✅ Safari
-- ✅ Edge
-- ✅ Mobile browsers (iOS Safari, Chrome Mobile)
-
-## 🐛 Troubleshooting
-
-### Music Won't Play
-- **Check file format**: Ensure it's a supported audio format
-- **Browser permissions**: Some browsers require user interaction before playing audio
-- **File size**: Very large files may take time to load
-
-### Timer Issues
-- **Refresh the page** if timer seems stuck
-- **Clear browser cache** if experiencing persistent issues
-
-### Mobile Issues
-- Ensure your device isn't on silent mode
-- Check volume settings
-- Some mobile browsers may restrict autoplay
-
-## 🤝 Contributing
-
-Feel free to fork and improve this game! Some ideas:
-- Add more preset songs
-- Create different game modes
-- Add sound effects
-- Implement score tracking
-- Add player name input
-- Create multiplayer online version
-
-## 📄 License
-
-This project is open source and free to use for personal and commercial purposes.
-
-## 🎉 Party Tips
-
-1. **Test First**: Run a quick test round to ensure everyone understands
-2. **Good Space**: Make sure you have enough room for everyone to sit comfortably
-3. **Keep Moving**: Encourage quick passing to keep the game exciting
-4. **Vary Duration**: Change the duration settings between rounds for unpredictability
-5. **Have Fun**: The goal is entertainment - don't take it too seriously!
-
-## 🙏 Credits
-
-Created with ❤️ for fun gatherings with friends and family.
-
----
-
-**Enjoy the game! 🎊**
-
-For questions or suggestions, feel free to reach out or open an issue.
+- Spotify Authorization Code Flow with PKCE:
+  https://developer.spotify.com/documentation/web-api/tutorials/code-pkce-flow
+- Spotify Web Playback SDK Quick Start:
+  https://developer.spotify.com/documentation/web-playback-sdk
+- Spotify Web API Reference (Player):
+  https://developer.spotify.com/documentation/web-api/reference/play-a-users-playback
+- Spotify Web API Reference (Playlists):
+  https://developer.spotify.com/documentation/web-api/reference/get-playlist
+- Spotify Developer Dashboard:
+  https://developer.spotify.com/dashboard
