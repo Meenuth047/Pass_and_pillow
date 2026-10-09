@@ -81,6 +81,7 @@ Important: Never commit or share your Spotify Client ID in public code repositor
 7. Select a stop duration range (10-20s, 20-30s, 30-40s, or 40-60s).
 8. Click "Start Game".
    - The game selects an eligible track at random.
+   - Automatically detects the chorus hook or first vocal line to start playback at the singing.
    - When playback starts, the randomized timer begins counting down.
    - The music automatically stops when the timer expires, showing: "Music stopped. Who has the pillow?"
    - To stop immediately at any moment, click "Stop Music Manually".
