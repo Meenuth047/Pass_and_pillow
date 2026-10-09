@@ -29,7 +29,22 @@ Requirements: A Spotify Premium account is required for third-party playback.
 
 ---
 
-## Offline Alternative (No Spotify Needed)
+## 100% Free YouTube Mode (No Spotify Premium or Login Needed)
+
+If you do not have Spotify Premium or do not wish to log in:
+
+1. Click the "YouTube (Free)" tab (active by default).
+2. Choose one of the curated party collections:
+   - Bollywood Party Hits (Kala Chashma, Badtameez Dil, Gallan Goodiyaan, etc.)
+   - Global Pop Hits (Levitating, Blinding Lights, Uptown Funk, etc.)
+   - 2000s and Retro Hits (Rasputin, Dancing Queen, Don't Stop Me Now, etc.)
+   - Or select "Custom YouTube Playlist or Video Link" and paste any public YouTube link.
+3. Choose your stop duration and click "Start Game".
+4. The game automatically skips instrumental intros, starting directly at high-energy choruses.
+
+---
+
+## Offline Alternative (No Internet or Spotify Needed)
 
 Click the "Upload Music" tab to upload any audio file directly from your phone or computer.
 
@@ -38,6 +53,7 @@ Click the "Upload Music" tab to upload any audio file directly from your phone o
 The application is structured as a client-side Single-Page Application (SPA) located in `src/`:
 
 - Vanilla HTML5, CSS3, and JavaScript: Eliminates complex build tools, external runtime dependencies, bundlers, and backend servers.
+- YouTube IFrame Player API (`https://www.youtube.com/iframe_api`): Provides 100% free, responsive music playback with zero login or subscription requirements.
 - Web Crypto API: Provides cryptographically secure random values and SHA-256 digest calculation for PKCE code verifiers and code challenges (`crypto.getRandomValues`, `crypto.subtle.digest`).
 - Spotify Web API: Communicates via HTTP requests (`fetch`) for user profile, playlist retrieval, device enumeration, and playback control (`/v1/me/player/play`, `/v1/me/player/pause`).
 - Spotify Web Playback SDK (`https://sdk.scdn.co/spotify-player.js`): Creates a local browser playback device for desktop environments.
