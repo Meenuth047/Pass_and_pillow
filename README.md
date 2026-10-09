@@ -10,25 +10,7 @@ Open https://pass-and-pillow.onrender.com in your mobile browser or desktop brow
 
 ---
 
-## Option 1: Quick Play (Use Author's App)
-
-To start playing immediately without setting up a developer account:
-
-1. On the Spotify tab, paste this Client ID:
-   ```
-   b9df1dea7f174af197b814956f500fd8
-   ```
-2. Click "Connect with Spotify" and log in with your Spotify account.
-3. Select your playback device:
-   - On Desktop: In-browser Web Player.
-   - On Mobile: Open the Spotify app on your phone, start playing briefly, and choose your phone from the device dropdown.
-4. Select a playlist from your library.
-5. Choose a stop duration (10-20s, 20-30s, 30-40s, or 40-60s).
-6. Click "Start Game" and pass the pillow!
-
----
-
-## Option 2: Play with Your Own Spotify App & Personal Songs
+## Play with Your Own Spotify App & Personal Songs
 
 If you want to use your own Spotify Developer credentials:
 
