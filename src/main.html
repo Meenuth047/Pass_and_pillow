@@ -409,6 +409,17 @@
             white-space: nowrap;
         }
 
+        .now-playing-hook {
+            margin-top: 5px;
+            font-size: 0.8em;
+            color: #166534;
+            background: #dcfce7;
+            padding: 3px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            font-weight: 600;
+        }
+
         audio {
             width: 100%;
             margin-bottom: 10px;
@@ -632,13 +643,13 @@
             <div class="input-group">
                 <label>Select a Preset Song:</label>
                 <div class="preset-songs">
-                    <button class="song-btn" data-url="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">
+                    <button class="song-btn" data-url="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" data-start="32">
                         🎵 Sample Song 1 (Upbeat)
                     </button>
-                    <button class="song-btn" data-url="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3">
+                    <button class="song-btn" data-url="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" data-start="40">
                         🎵 Sample Song 2 (Electronic)
                     </button>
-                    <button class="song-btn" data-url="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3">
+                    <button class="song-btn" data-url="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" data-start="35">
                         🎵 Sample Song 3 (Rock)
                     </button>
                 </div>
@@ -667,6 +678,7 @@
                 <div class="now-playing-meta">
                     <div id="nowPlayingTitle" class="now-playing-title">Song Title</div>
                     <div id="nowPlayingArtist" class="now-playing-artist">Artist</div>
+                    <div id="nowPlayingHook" class="now-playing-hook" style="display: none;"></div>
                 </div>
             </div>
 
@@ -721,6 +733,7 @@
         let maxDuration = 20;
         let stopTimeout = null;
         let currentAudioUrl = null; // For local/preset audio
+        let currentAudioStartOffset = null; // Auto-skip intro offset for local/preset audio
         let activeTab = 'spotify';
         let isStarting = false;
         let isPlaying = false;
@@ -781,6 +794,7 @@
         const nowPlayingCover = document.getElementById('nowPlayingCover');
         const nowPlayingTitle = document.getElementById('nowPlayingTitle');
         const nowPlayingArtist = document.getElementById('nowPlayingArtist');
+        const nowPlayingHook = document.getElementById('nowPlayingHook');
         const sessionStatsText = document.getElementById('sessionStatsText');
         const resetSessionBtn = document.getElementById('resetSessionBtn');
 
@@ -1407,7 +1421,8 @@
                             uri: t.uri,
                             name: t.name || 'Unknown Track',
                             artist: artists,
-                            cover: cover
+                            cover: cover,
+                            duration_ms: t.duration_ms || 210000
                         };
                     });
 
@@ -1442,6 +1457,11 @@
                 });
 
                 playlistPreviewCard.style.display = 'flex';
+
+                // Pre-warm smart hook detection for top eligible tracks in background
+                selectedPlaylistEligibleTracks.slice(0, 15).forEach(t => {
+                    getSmartStartOffset(t).catch(() => {});
+                });
 
                 // Notice handling
                 if (selectedPlaylistEligibleTracks.length === 0) {
@@ -1539,6 +1559,126 @@
             }
         }
 
+        // ==========================================
+        // Smart Hook & Vocal Start Engine (Automatic)
+        // ==========================================
+        const hookOffsetCache = new Map();
+
+        function cleanTitleForSearch(title) {
+            if (!title) return '';
+            return title
+                .replace(/\s*[\(\[](feat|ft|with|prod|live|remaster|radio|edit|remix|version|deluxe|bonus|anniversary)[\.\s\w\d-]*[\)\]]/gi, '')
+                .replace(/\s*-\s*(feat|ft|live|remaster|radio|edit|remix|version|deluxe)[\.\s\w\d-]*/gi, '')
+                .replace(/[^\w\s\u00C0-\u024F\u1E00-\u1EFF]/gi, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function parseLrcForHook(lrcText, maxSafeStartSec) {
+            if (!lrcText) return null;
+            const lines = [];
+            const lineCounts = {};
+            const timeRegex = /\[(\d{1,2}):(\d{2}(?:\.\d+)?)\](.*)/;
+
+            const rawLines = lrcText.split('\n');
+            for (const raw of rawLines) {
+                const match = timeRegex.exec(raw.trim());
+                if (match) {
+                    const mins = parseInt(match[1], 10);
+                    const secs = parseFloat(match[2]);
+                    const totalSec = mins * 60 + secs;
+                    const text = match[3].trim();
+                    const clean = text.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
+
+                    if (clean && !clean.startsWith('instrumental') && !clean.startsWith('intro')) {
+                        lines.push({ sec: totalSec, text: text, clean: clean });
+                        lineCounts[clean] = (lineCounts[clean] || 0) + 1;
+                    }
+                }
+            }
+
+            if (lines.length === 0) return null;
+
+            // 1. Look for repeating lines after 15s (Chorus / Hook)
+            const chorusCandidates = lines.filter(l => lineCounts[l.clean] > 1 && l.sec >= 15 && l.sec <= maxSafeStartSec);
+            if (chorusCandidates.length > 0) {
+                const best = chorusCandidates[0];
+                return {
+                    offsetMs: Math.round(best.sec * 1000),
+                    label: 'Chorus Hook',
+                    lyricLine: best.text
+                };
+            }
+
+            // 2. Look for the first vocal line after any short delay
+            const firstVocal = lines.find(l => l.sec >= 5 && l.sec <= maxSafeStartSec);
+            if (firstVocal) {
+                return {
+                    offsetMs: Math.round(firstVocal.sec * 1000),
+                    label: 'First Vocal Line',
+                    lyricLine: firstVocal.text
+                };
+            }
+
+            return null;
+        }
+
+        async function getSmartStartOffset(track) {
+            if (!track) return { offsetMs: 0, label: 'Start', lyricLine: '' };
+            if (hookOffsetCache.has(track.id)) {
+                return hookOffsetCache.get(track.id);
+            }
+
+            const durationSec = (track.duration_ms ? track.duration_ms / 1000 : 210);
+            const maxSafeStartSec = Math.max(0, durationSec - 65);
+
+            // Default musical chorus formula: ~28% - 32% of track duration (typical pop chorus)
+            let fallbackSec = Math.round(durationSec * 0.30);
+            if (fallbackSec > maxSafeStartSec) fallbackSec = Math.max(0, Math.min(30, maxSafeStartSec));
+            if (fallbackSec < 15 && durationSec > 50) fallbackSec = 20;
+
+            let result = {
+                offsetMs: Math.round(fallbackSec * 1000),
+                label: 'Chorus / Beat (Auto)',
+                lyricLine: ''
+            };
+
+            // Non-blocking synced lyrics lookup via LRCLIB
+            try {
+                const cleanTitle = cleanTitleForSearch(track.name);
+                const primaryArtist = track.artist ? track.artist.split(',')[0].trim() : '';
+                const durParam = Math.round(durationSec);
+
+                if (cleanTitle) {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 1200);
+
+                    const queryUrl = `https://lrclib.net/api/get?track_name=${encodeURIComponent(cleanTitle)}&artist_name=${encodeURIComponent(primaryArtist)}&duration=${durParam}`;
+                    const res = await fetch(queryUrl, {
+                        signal: controller.signal,
+                        headers: { 'Accept': 'application/json' }
+                    }).catch(() => null);
+
+                    clearTimeout(timeoutId);
+
+                    if (res && res.ok) {
+                        const data = await res.json().catch(() => null);
+                        if (data && data.syncedLyrics) {
+                            const parsed = parseLrcForHook(data.syncedLyrics, maxSafeStartSec);
+                            if (parsed) {
+                                result = parsed;
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                // Keep fallback
+            }
+
+            hookOffsetCache.set(track.id, result);
+            return result;
+        }
+
         async function startSpotifyRound() {
             if (selectedPlaylistEligibleTracks.length === 0) {
                 showStatus('Cannot start game: No playable tracks in selected playlist.', 'error');
@@ -1559,6 +1699,7 @@
             let attempt = 0;
             const failedTrackIdsInRound = new Set();
             let chosenTrack = null;
+            let hookInfo = null;
 
             while (attempt < MAX_PLAYBACK_RETRIES) {
                 attempt++;
@@ -1575,16 +1716,25 @@
                 chosenTrack = selection.track;
 
                 try {
-                    // Send playback command to Spotify Web API
+                    // Automatically detect chorus/vocal start offset
+                    hookInfo = await getSmartStartOffset(chosenTrack);
+                    const positionMs = hookInfo ? hookInfo.offsetMs : 0;
+
+                    // Send playback command to Spotify Web API with auto hook position
                     const playUrl = deviceId 
                         ? `/me/player/play?device_id=${encodeURIComponent(deviceId)}` 
                         : '/me/player/play';
 
+                    const playPayload = {
+                        uris: [chosenTrack.uri]
+                    };
+                    if (positionMs > 0) {
+                        playPayload.position_ms = positionMs;
+                    }
+
                     const playRes = await spotifyFetch(playUrl, {
                         method: 'PUT',
-                        body: JSON.stringify({
-                            uris: [chosenTrack.uri]
-                        })
+                        body: JSON.stringify(playPayload)
                     });
 
                     if (!playRes.ok) {
@@ -1629,6 +1779,18 @@
             // Display Now Playing info
             nowPlayingTitle.textContent = chosenTrack.name;
             nowPlayingArtist.textContent = chosenTrack.artist;
+            if (nowPlayingHook) {
+                if (hookInfo && hookInfo.offsetMs > 0) {
+                    const mm = Math.floor(hookInfo.offsetMs / 60000);
+                    const ss = Math.floor((hookInfo.offsetMs % 60000) / 1000).toString().padStart(2, '0');
+                    const lyricTxt = hookInfo.lyricLine ? ` · "${hookInfo.lyricLine}"` : '';
+                    nowPlayingHook.textContent = `🎯 Auto-started at ${mm}:${ss} (${hookInfo.label})${lyricTxt}`;
+                    nowPlayingHook.style.display = 'inline-block';
+                } else {
+                    nowPlayingHook.style.display = 'none';
+                }
+            }
+
             if (chosenTrack.cover) {
                 nowPlayingCover.src = chosenTrack.cover;
                 nowPlayingCover.style.display = 'block';
@@ -1659,12 +1821,34 @@
             startBtn.disabled = true;
             showStatus('Starting audio...', 'starting');
 
-            audioPlayer.src = currentAudioUrl;
+            if (audioPlayer.src !== currentAudioUrl) {
+                audioPlayer.src = currentAudioUrl;
+            }
             spotifyNowPlaying.style.display = 'none';
             audioPlayer.style.display = 'block';
             playerContainer.classList.add('active');
 
             try {
+                // Auto-skip intro: apply smart start offset for local audio
+                let startSec = currentAudioStartOffset;
+                if (startSec === null || isNaN(startSec)) {
+                    if (audioPlayer.duration && !isNaN(audioPlayer.duration)) {
+                        const dur = audioPlayer.duration;
+                        const safeMax = Math.max(0, dur - 65);
+                        startSec = Math.round(dur * 0.30);
+                        if (startSec > safeMax) startSec = safeMax;
+                        if (startSec < 15 && dur > 50) startSec = 20;
+                    } else {
+                        startSec = 0;
+                    }
+                }
+
+                if (startSec > 0) {
+                    try {
+                        audioPlayer.currentTime = startSec;
+                    } catch (e) {}
+                }
+
                 await audioPlayer.play();
                 isPlaying = true;
                 isStarting = false;
@@ -1690,6 +1874,10 @@
             isPlaying = false;
             isStarting = false;
             startBtn.disabled = false;
+
+            if (nowPlayingHook) {
+                nowPlayingHook.style.display = 'none';
+            }
 
             // Stop local audio if active
             try {
@@ -1749,6 +1937,7 @@
             const file = e.target.files[0];
             if (file) {
                 currentAudioUrl = URL.createObjectURL(file);
+                currentAudioStartOffset = null; // will auto-calculate upon play
                 showStatus('Audio file selected. Ready to play!', 'ready');
             }
         });
@@ -1758,6 +1947,7 @@
                 songBtns.forEach(b => b.classList.remove('selected'));
                 btn.classList.add('selected');
                 currentAudioUrl = btn.dataset.url;
+                currentAudioStartOffset = btn.dataset.start ? parseFloat(btn.dataset.start) : null;
                 showStatus('Sample song selected. Ready to play!', 'ready');
             });
         });
