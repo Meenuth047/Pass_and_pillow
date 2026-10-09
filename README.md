@@ -1,139 +1,144 @@
 # Pass the Pillow
 
-Pass the Pillow is a lightweight browser-based party game inspired by
-pass-the-pillow and hot potato. Music plays while players pass an object
-around. When the music stops, the person holding it is out, receives a
-challenge, or takes the next turn according to the group's rules.
+Pass the Pillow is an automated, web-based party game application designed to eliminate bias and keep classic party games fair and unpredictable.
 
-## Why I built it
+## Origin Story
 
-The idea came from a gathering with friends. One day, some friends
-visited and suggested playing pass the pillow. The usual approach was to
-choose songs and manually start and pause them. That meant one person
-controlled the timing, which could make the game unfair. I searched
-online for a tool matching this use case but did not find one that
-suited what I wanted, so I built a small app that stops music
-automatically.
+The project originated during a gathering with friends and family. A group decided to play the classic party game "Pass the Pillow", but the traditional setup required a designated person to manually play and pause music. This created an unavoidable fairness issue: the person controlling the music could anticipate or observe who held the pillow and deliberately choose when to pause, influencing the outcome of the round. 
 
-The first version was deliberately quick to build: users could upload a
-local audio file or choose a preset track, select a random stop
-interval, and start a round. The next improvement is to connect Spotify
-so users can choose a playlist instead of preparing audio files
-manually.
+Searching online for an automated tool revealed plenty of generic countdown timers, but none tailored specifically to this use case--namely, an app that plays real music from a playlist at random and halts abruptly at an unpredictable moment without human intervention. This project was built to solve that problem, giving every player, including the host, an equal opportunity to participate.
 
-## Current version
+## How the Game Works
 
--   Single-page interface using HTML, CSS, and vanilla JavaScript.
--   Local audio upload through the browser.
--   Preset tracks.
--   Random stop ranges: 10--20, 20--30, 30--40, and 40--60 seconds.
--   Automatic stopping and a manual stop control.
--   No backend or build system required for the local-file version.
+1. Players sit in a circle and designate a pillow (or ball, toy, or other object) to pass.
+2. The game host connects a music source (Spotify playlist, local audio file, or preset samples).
+3. The host chooses a randomized duration range (10-20 seconds, 20-30 seconds, 30-40 seconds, or 40-60 seconds).
+4. When the host presses "Start Game", an eligible track is selected at random and begins playing.
+5. Players pass the pillow in a circle.
+6. The timer stops the music automatically at a random instant within the selected range, displaying the prompt: "Music stopped. Who has the pillow?"
+7. The player caught holding the pillow is eliminated or receives a round penalty, according to house rules.
 
-## Planned Spotify improvements
+## Feature Matrix
 
--   Spotify authorization and playlist access.
--   Playlist dropdown and a preview of the selected playlist.
--   Random selection of an eligible track for each round.
--   Avoid the same track in consecutive rounds whenever at least two
-    eligible tracks are available.
--   Automatic stopping after a randomly chosen interval.
--   Clear loading, authorization, empty-playlist, unavailable-track,
-    device, and playback-error states.
--   Retain local-file playback as an optional fallback if useful.
+### Implemented Features
 
-Spotify playback is subject to account eligibility, API availability,
-supported playback methods, and device requirements. The Spotify Web
-Playback SDK requires Spotify Premium. The app must communicate
-limitations clearly and must not claim playback succeeded when it did
-not.
+- Spotify OAuth 2.0 PKCE Authorization: Secure, browser-only public client flow without client secrets. Includes CSRF state validation, callback handling, token storage, automatic token refreshing, and complete session disconnect.
+- User Playlists Retrieval: Full playlist loading with API pagination, cover art, and total track counts.
+- Playlist Preview: Live inspection of the selected playlist including cover image, title, total tracks, eligible playable tracks count, and scrollable track list with title and artist information.
+- Intelligent Random Track Selection:
+  - Selects uniformly from eligible, playable, non-local tracks.
+  - Guaranteed non-repetition across consecutive rounds when two or more eligible tracks exist.
+  - Session history tracking that prioritizes unplayed tracks during the active session.
+  - Graceful single-track handling: Permits repetition with explanatory UI notice if a playlist has only one playable track.
+  - Graceful zero-track handling: Warns user and prevents game start if a playlist is empty.
+  - Bounded retry: Retries up to 3 alternative tracks if a selected track fails playback due to API or network errors.
+  - Automatic session history reset when changing playlists or clicking Reset History.
+- Spotify Playback Methods:
+  - Spotify Web Playback SDK: In-browser streaming player for supported desktop browsers.
+  - Spotify Connect Web API: Device discovery and remote playback control for open Spotify apps (desktop, mobile, smart speakers).
+- Configurable Randomized Stop Intervals: Four duration ranges (10-20s, 20-30s, 30-40s, 40-60s), with endpoints inclusive.
+- Precise Playback Verification: Timers trigger only after audio playback is confirmed active.
+- Automated Stop and Emergency Manual Stop: Halts audio and clears all timeouts cleanly.
+- Race Condition and Stale Timer Guards: Disables start button during initialization, clears timers on playlist switch, mode change, stop, and session disconnect.
+- Truthful State Display: Visual states for disconnected, loading, ready, starting, playing, stopped, and error.
+- Offline and Local Audio Fallback: Retains local file upload (MP3, WAV, OGG) and preset sample audio streams for offline play or accounts without Spotify Premium.
 
-## How a round works
+### Planned Features
 
-1.  Connect Spotify (planned).
-2.  Load playlists the user is authorized to access.
-3.  Select a playlist and a stop-time range.
-4.  Start a round.
-5.  Select a playable track, avoiding the immediately previous track
-    when possible.
-6.  Start playback and independently choose a random stop time.
-7.  Stop playback when the timer expires and show a clear status
-    message.
-8.  Choose a different track for the next round whenever possible.
+- Multiplayer scorekeeping and player elimination brackets.
+- Sound effects for countdowns and buzzer tones.
+- Custom stop duration range sliders.
+- Collaborative playlist voting and party room sharing via WebRTC.
 
-Timers must be cancelled when a round is stopped or restarted, when the
-playlist changes, and when the relevant UI is torn down.
+## Architecture and Technology Choices
 
-## Suggested architecture
+The application is structured as a client-side Single-Page Application (SPA) contained within `main.html`:
 
--   **Interface:** connection status, playlist dropdown, playlist
-    preview, duration selector, start/stop controls, and round status.
--   **Authorization:** OAuth 2.0 Authorization Code with PKCE for a
-    browser-only public client. Never embed a client secret in browser
-    code.
--   **Playlist service:** retrieves playlist and track metadata using
-    only necessary permissions.
--   **Track selection:** filters unavailable entries and chooses a track
-    without immediate repetition when possible.
--   **Playback service:** starts and stops playback through a supported
-    Spotify mechanism and reports errors.
--   **Round controller:** owns timer state, selected duration, current
-    track, and round lifecycle.
+- Vanilla HTML5, CSS3, and JavaScript: Eliminates complex build tools, external runtime dependencies, bundlers, and backend servers.
+- Web Crypto API: Provides cryptographically secure random values and SHA-256 digest calculation for PKCE code verifiers and code challenges (`crypto.getRandomValues`, `crypto.subtle.digest`).
+- Spotify Web API: Communicates via HTTP requests (`fetch`) for user profile, playlist retrieval, device enumeration, and playback control (`/v1/me/player/play`, `/v1/me/player/pause`).
+- Spotify Web Playback SDK (`https://sdk.scdn.co/spotify-player.js`): Creates a local browser playback device for desktop environments.
+- HTML5 Audio API: Powers the offline fallback player via `URL.createObjectURL(file)` and native `<audio>` element controls.
 
-Keep the app lightweight. Do not add a framework, database, backend, or
-build tool unless the selected Spotify flow or deployment requirements
-genuinely need one.
+## Spotify Integration and Setup
 
-## Requirements and limitations
+### Spotify Developer Dashboard Configuration
 
--   Modern browser with JavaScript enabled.
--   Spotify account and authorization for the requested access.
--   Spotify developer application with the exact redirect URI
-    configured.
--   Compatible Spotify playback method and device.
--   Internet access for Spotify features. Local-file playback can work
-    offline if retained.
--   Check official Spotify documentation for current API rules and
-    requirements.
+To connect Spotify, you must register a free application in the Spotify Developer Dashboard:
 
-Official references: - [Spotify
-Authorization](https://developer.spotify.com/documentation/web-api/concepts/authorization) -
-[Authorization Code with
-PKCE](https://developer.spotify.com/documentation/web-api/tutorials/code-pkce-flow) -
-[Spotify API
-scopes](https://developer.spotify.com/documentation/web-api/concepts/scopes) -
-[Spotify Web Playback
-SDK](https://developer.spotify.com/documentation/web-playback-sdk)
+1. Log in to the Spotify Developer Dashboard at https://developer.spotify.com/dashboard.
+2. Click "Create App".
+3. Provide an App name (for example, "Pass the Pillow") and App description.
+4. Set the Redirect URI to the exact address where the app is hosted.
+   - For local development: `http://127.0.0.1:8000/main.html` or `http://localhost:8000/main.html`.
+5. Select the "Web API" and "Web Playback SDK" checkboxes under Which APIs are you planning to use.
+6. Accept the Developer Terms of Service and save the app.
+7. Copy your Client ID from the app overview page.
 
-## Security and privacy
+### Connecting in Pass the Pillow
 
--   Request only the scopes needed for playlist access and playback.
--   Never commit credentials or tokens to version control.
--   Never put a Spotify client secret in frontend JavaScript.
--   Validate OAuth `state` and implement PKCE correctly.
--   Handle token expiry and authorization cancellation without exposing
-    credentials in logs.
--   Do not modify playlists or the user's library.
+1. Open `main.html` in your web browser.
+2. In the Spotify tab, paste your Client ID into the input field.
+3. Click "Connect with Spotify".
+4. Authorize the requested permissions on the Spotify login screen.
+5. You will be redirected back to the application with an authorization code, which is exchanged for an access token automatically.
 
-## Development principles
+### Account and Device Limitations
 
--   Keep the interface responsive and accessible.
--   Make playback state visible and unambiguous.
--   Generate a fresh random timer for every round.
--   Avoid immediate track repetition when possible, and handle playlists
-    with one playable track.
--   Test authorization failures, empty playlists, unavailable tracks,
-    playback errors, repeated start/stop actions, and timer cleanup.
+- Spotify Premium Requirement: Spotify API playback control (`/v1/me/player/play`, `/v1/me/player/pause`) and the Spotify Web Playback SDK strictly require a Spotify Premium subscription. Free Spotify accounts will receive a 403 Forbidden ("Premium required") error from Spotify API. This is an official restriction enforced by Spotify.
+- Mobile Web Browser Playback: The Spotify Web Playback SDK relies on Encrypted Media Extensions (EME), which are not supported in mobile web browsers (such as Safari on iOS or Chrome on Android). To play on a mobile device, launch the official Spotify mobile app on your phone, open Pass the Pillow in your mobile browser, and select your phone as the playback device from the device dropdown.
+- Public Client Scopes: The application requests minimal required scopes:
+  - `streaming`
+  - `user-read-email`
+  - `user-read-private`
+  - `playlist-read-private`
+  - `playlist-read-collaborative`
+  - `user-modify-playback-state`
+  - `user-read-playback-state`
 
-## Project files
+## Security and Privacy
 
--   `main.html` --- original single-page interface and game logic.
--   `README.md` --- project background, architecture, and development
-    notes.
--   `QUICK_START.md` --- concise setup and usage instructions.
+- No Client Secret: In accordance with OAuth 2.0 PKCE standards for public browser clients, no client secret is used, stored, or committed.
+- State Validation: An unpredictable cryptographic state parameter is generated per authorization request and verified upon callback to prevent CSRF attacks.
+- Client-Side Token Storage: Tokens are saved strictly in your browser local storage. They are never sent to any third-party server.
+- One-Click Disconnect: Clicking "Disconnect" purges all access tokens, refresh tokens, and session identifiers from storage and disconnects the player instance.
 
-## Project status
+## Development and Testing Guidance
 
-The local-file game is the starting point. Spotify connection, playlist
-selection, and non-repeating track selection are planned improvements
-and must not be described as implemented until built and tested.
+### Running Locally
+
+To run the application locally using Python standard library:
+
+```bash
+# Navigate to the project directory
+cd /path/to/Pass_and_pillow
+
+# Start a local HTTP server
+python3 -m http.server 8000
+
+# Open in your browser:
+# http://127.0.0.1:8000/main.html
+```
+
+### Running Test Verification
+
+The repository includes an automated verification test suite:
+
+```bash
+python3 test_suite.py
+```
+
+This tests HTML structure, UI elements, PKCE generation, track selection algorithms, timer math, consecutive non-repetition guarantees, single-track fallbacks, retry limits, and documentation formatting.
+
+## Official Spotify Documentation References
+
+- Spotify Authorization Code Flow with PKCE:
+  https://developer.spotify.com/documentation/web-api/tutorials/code-pkce-flow
+- Spotify Web Playback SDK Quick Start:
+  https://developer.spotify.com/documentation/web-playback-sdk
+- Spotify Web API Reference (Player):
+  https://developer.spotify.com/documentation/web-api/reference/play-a-users-playback
+- Spotify Web API Reference (Playlists):
+  https://developer.spotify.com/documentation/web-api/reference/get-playlist
+- Spotify Developer Dashboard:
+  https://developer.spotify.com/dashboard
