@@ -1,5 +1,10 @@
 # Pass the Pillow
 
+Live Website: https://pass-and-pillow.onrender.com
+
+For a quick 1-minute guide to start playing, see [QUICK_START.md](QUICK_START.md).
+For detailed deployment and local server instructions, see [Installation.md](Installation.md).
+
 Pass the Pillow is an automated, web-based party game application designed to eliminate bias and keep classic party games fair and unpredictable.
 
 ## Origin Story
