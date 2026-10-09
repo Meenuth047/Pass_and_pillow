@@ -60,6 +60,7 @@ The application is structured as a client-side Single-Page Application (SPA) loc
 - Spotify Web API: Communicates via HTTP requests (`fetch`) for user profile, playlist retrieval, device enumeration, and playback control (`/v1/me/player/play`, `/v1/me/player/pause`).
 - Spotify Web Playback SDK (`https://sdk.scdn.co/spotify-player.js`): Creates a local browser playback device for desktop environments.
 - HTML5 Audio API: Powers the offline fallback player via `URL.createObjectURL(file)` and native `<audio>` element controls.
+- Automatic Smart Hook & Vocal Start Engine: Analyzes synced lyric timestamps and musical structure heuristics to automatically start tracks directly on the iconic chorus hook or vocal line, skipping empty instrumental intros without manual trimming.
 
 ## Repository Structure
 
