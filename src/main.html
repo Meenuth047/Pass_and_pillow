@@ -663,7 +663,7 @@
                 <label>Select a Party Playlist / Genre:</label>
                 <div class="preset-songs" id="ytGenreList">
                     <button class="song-btn selected" data-genre="bollywood">
-                        💃 Bollywood Party Hits (Kala Chashma, Badtameez Dil, Gallan Goodiyaan...)
+                        💃 Bollywood Party Hits (Dil Chori, Kala Chashma, Abhi Toh Party Shuru Hui Hai...)
                     </button>
                     <button class="song-btn" data-genre="pop">
                         🎉 Global Pop Hits (Levitating, Blinding Lights, Uptown Funk...)
@@ -779,6 +779,7 @@
         let selectedYtGenre = 'bollywood';
         let ytSessionPlayedVideoIds = new Set();
         let lastPlayedYtVideoId = null;
+        let currentYtStartSeconds = 0;
 
         // Spotify State
         let spotifyUser = null;
@@ -1672,7 +1673,7 @@
                 const videoId = extractYouTubeVideoId(customVal);
 
                 if (playlistId) {
-                    return { isPlaylist: true, playlistId: playlistId };
+                    return { isPlaylist: true, playlistId: playlistId, startSeconds: 30 };
                 } else if (videoId) {
                     return { isPlaylist: false, videoId: videoId, title: 'Custom YouTube Video', startSeconds: 0 };
                 } else {
@@ -1680,7 +1681,32 @@
                 }
             }
 
-            const trackList = YOUTUBE_GENRE_TRACKS[genre] || YOUTUBE_GENRE_TRACKS['bollywood'];
+            if (genre === 'bollywood') {
+                // User party playlist: https://www.youtube.com/watch?v=xWi8nDUjHGA&list=PLnGRV05XmAq2xzqAI9kr-9o11J7uLS19w
+                const totalTracks = 80;
+                let candidateIndex = 0;
+                if (roundsPlayed === 0 && !ytSessionPlayedVideoIds.has(0)) {
+                    candidateIndex = 0;
+                } else {
+                    candidateIndex = Math.floor(Math.random() * totalTracks);
+                    if (ytSessionPlayedVideoIds.size < totalTracks) {
+                        while (ytSessionPlayedVideoIds.has(candidateIndex)) {
+                            candidateIndex = Math.floor(Math.random() * totalTracks);
+                        }
+                    } else {
+                        ytSessionPlayedVideoIds.clear();
+                    }
+                }
+                ytSessionPlayedVideoIds.add(candidateIndex);
+                return {
+                    isPlaylist: true,
+                    playlistId: 'PLnGRV05XmAq2xzqAI9kr-9o11J7uLS19w',
+                    index: candidateIndex,
+                    startSeconds: 30
+                };
+            }
+
+            const trackList = YOUTUBE_GENRE_TRACKS[genre] || YOUTUBE_GENRE_TRACKS['pop'];
             if (!trackList || trackList.length === 0) return null;
 
             if (trackList.length === 1) {
@@ -1719,7 +1745,13 @@
                     'onStateChange': onYtPlayerStateChange,
                     'onError': (event) => {
                         console.warn('YouTube Player error code:', event.data);
-                        showStatus('YouTube playback error. Try another song or playlist.', 'error');
+                        if (isStarting && ytPlayer && ytPlayer.nextVideo) {
+                            try {
+                                ytPlayer.nextVideo();
+                                return;
+                            } catch (e) {}
+                        }
+                        showStatus('Video unavailable. Tap Start Game again to play another song.', 'error');
                         isStarting = false;
                         startBtn.disabled = false;
                     }
@@ -1730,6 +1762,14 @@
         function onYtPlayerStateChange(event) {
             // YT.PlayerState.PLAYING is 1
             if (event.data === 1 && isStarting) {
+                if (currentYtStartSeconds > 0) {
+                    try {
+                        if (ytPlayer.getCurrentTime && ytPlayer.getCurrentTime() < 5) {
+                            ytPlayer.seekTo(currentYtStartSeconds, true);
+                        }
+                    } catch (e) {}
+                }
+
                 isPlaying = true;
                 isStarting = false;
                 startBtn.disabled = false;
@@ -1777,10 +1817,12 @@
                 if (selection.isPlaylist) {
                     roundsPlayed++;
                     updateSessionStats();
+                    currentYtStartSeconds = selection.startSeconds || 30;
                     ytPlayer.loadPlaylist({
                         list: selection.playlistId,
                         listType: 'playlist',
-                        index: Math.floor(Math.random() * 10)
+                        index: selection.index !== undefined ? selection.index : Math.floor(Math.random() * 20),
+                        startSeconds: currentYtStartSeconds
                     });
                 } else {
                     const trackObj = selection.track || selection;
@@ -1788,10 +1830,11 @@
                     ytSessionPlayedVideoIds.add(trackObj.videoId);
                     roundsPlayed++;
                     updateSessionStats();
+                    currentYtStartSeconds = trackObj.startSeconds || 0;
 
                     ytPlayer.loadVideoById({
                         videoId: trackObj.videoId,
-                        startSeconds: trackObj.startSeconds || 0
+                        startSeconds: currentYtStartSeconds
                     });
                 }
 
