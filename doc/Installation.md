@@ -1,4 +1,4 @@
-# Quick Start Guide: Pass the Pillow
+# Installation and Deployment Guide: Pass the Pillow
 
 ## Launching the Application
 
@@ -14,9 +14,9 @@ To allow anyone to play on their mobile phone or laptop without running a local 
 ### Step 2: Configure the Static Site Settings
 In the Render creation form, configure the fields:
 - Name: `pass-and-pillow` (or your preferred name)
-- Branch: `feature/spotify-connect` (or `main`)
+- Branch: `main`
 - Build Command: leave blank (or enter `echo 'Build complete'`)
-- Publish Directory: `.` (a single dot for the root directory)
+- Publish Directory: `src` (the directory containing index.html and main.html)
 - Click "Create Static Site".
 
 Render will automatically deploy the site and provide a free, secure live URL (such as `https://pass-and-pillow.onrender.com`).
@@ -40,9 +40,11 @@ If you prefer testing locally on a computer:
    ```bash
    cd /path/to/Pass_and_pillow
    ```
-2. Start a local HTTP server:
+2. Start a local HTTP server pointing to the `src` directory:
    ```bash
-   python3 -m http.server 8000
+   python3 -m http.server 8000 -d src
+   # or
+   cd src && python3 -m http.server 8000
    ```
 3. Open `http://127.0.0.1:8000/` in your browser.
 
