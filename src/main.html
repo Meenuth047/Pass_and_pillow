@@ -521,6 +521,25 @@
             word-break: break-all;
         }
 
+        #youtubePlayerWrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+            overflow: hidden;
+            border-radius: 8px;
+            background: #000;
+            margin-bottom: 15px;
+        }
+
+        #youtubePlayerWrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
         .action-row {
             display: flex;
             gap: 8px;
@@ -552,19 +571,19 @@
 
         <div class="info">
             <p><strong>How to play:</strong></p>
-            <p>1. Choose music: Connect Spotify playlist, upload local file, or use presets.</p>
+            <p>1. Choose music: YouTube (100% Free), Spotify, or upload local files.</p>
             <p>2. Select when the music should stop.</p>
             <p>3. Pass the pillow until music stops automatically!</p>
         </div>
 
         <div class="tabs" role="tablist">
-            <button class="tab active" data-tab="spotify" role="tab" id="tabSpotify">Spotify</button>
+            <button class="tab active" data-tab="youtube" role="tab" id="tabYoutube">YouTube (Free)</button>
+            <button class="tab" data-tab="spotify" role="tab" id="tabSpotify">Spotify</button>
             <button class="tab" data-tab="upload" role="tab" id="tabUpload">Upload Music</button>
-            <button class="tab" data-tab="preset" role="tab" id="tabPreset">Preset Songs</button>
         </div>
 
         <!-- Spotify Tab Content -->
-        <div id="spotifyTab" class="tab-content active" role="tabpanel">
+        <div id="spotifyTab" class="tab-content" role="tabpanel">
             <!-- Spotify Auth View (Disconnected) -->
             <div id="spotifyAuthView">
                 <div class="warning-box">
@@ -638,21 +657,35 @@
             </div>
         </div>
 
-        <!-- Preset Songs Tab Content -->
-        <div id="presetTab" class="tab-content" role="tabpanel">
+        <!-- YouTube Tab Content (100% Free - No Spotify or Login Required) -->
+        <div id="youtubeTab" class="tab-content active" role="tabpanel">
+            <div style="background: #eef2ff; border-left: 4px solid #6366f1; padding: 12px; border-radius: 8px; margin-bottom: 18px; font-size: 0.9em; color: #3730a3;">
+                <strong>100% Free for Everyone:</strong>
+                No Spotify Premium or login required! Choose a popular party playlist below or paste any YouTube playlist link to play full songs with automatic chorus jumps.
+            </div>
+
             <div class="input-group">
-                <label>Select a Preset Song:</label>
-                <div class="preset-songs">
-                    <button class="song-btn" data-url="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" data-start="32">
-                        🎵 Sample Song 1 (Upbeat)
+                <label>Select a Party Playlist / Genre:</label>
+                <div class="preset-songs" id="ytGenreList">
+                    <button class="song-btn selected" data-genre="bollywood">
+                        💃 Bollywood Party Hits (Kala Chashma, Badtameez Dil, Gallan Goodiyaan...)
                     </button>
-                    <button class="song-btn" data-url="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" data-start="40">
-                        🎵 Sample Song 2 (Electronic)
+                    <button class="song-btn" data-genre="pop">
+                        🎉 Global Pop Hits (Levitating, Blinding Lights, Uptown Funk...)
                     </button>
-                    <button class="song-btn" data-url="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" data-start="35">
-                        🎵 Sample Song 3 (Rock)
+                    <button class="song-btn" data-genre="retro">
+                        🕺 2000s & Retro Hits (Rasputin, Dancing Queen, Don't Stop Me Now...)
+                    </button>
+                    <button class="song-btn" data-genre="custom">
+                        🔗 Custom YouTube Playlist or Video Link
                     </button>
                 </div>
+            </div>
+
+            <div class="input-group" id="ytCustomInputGroup" style="display: none; margin-top: 10px;">
+                <label for="ytCustomUrl">Paste YouTube Playlist or Video URL:</label>
+                <input type="text" id="ytCustomUrl" placeholder="https://www.youtube.com/playlist?list=... or video link">
+                <p class="input-hint">Paste any public YouTube playlist or video link. Pass the Pillow will randomly choose songs and stop them!</p>
             </div>
         </div>
 
@@ -682,7 +715,12 @@
                 </div>
             </div>
 
-            <!-- Native audio player for Upload/Preset -->
+            <!-- YouTube Video Player Embed -->
+            <div id="youtubePlayerWrapper" style="display: none;">
+                <div id="youtubePlayerEmbed"></div>
+            </div>
+
+            <!-- Native audio player for Upload -->
             <audio id="audioPlayer" controls style="display: none;"></audio>
             
             <button class="stop-btn" id="stopBtn">Stop Music Manually</button>
@@ -700,6 +738,8 @@
 
     <!-- Spotify Web Playback SDK (loaded asynchronously) -->
     <script src="https://sdk.scdn.co/spotify-player.js"></script>
+    <!-- YouTube IFrame Player API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
         // ==========================================
@@ -732,11 +772,18 @@
         let minDuration = 10;
         let maxDuration = 20;
         let stopTimeout = null;
-        let currentAudioUrl = null; // For local/preset audio
-        let currentAudioStartOffset = null; // Auto-skip intro offset for local/preset audio
-        let activeTab = 'spotify';
+        let currentAudioUrl = null; // For local audio
+        let currentAudioStartOffset = null; // Auto-skip intro offset for local audio
+        let activeTab = 'youtube'; // Default to free YouTube player
         let isStarting = false;
         let isPlaying = false;
+
+        // YouTube State
+        let ytPlayer = null;
+        let ytPlayerReady = false;
+        let selectedYtGenre = 'bollywood';
+        let ytSessionPlayedVideoIds = new Set();
+        let lastPlayedYtVideoId = null;
 
         // Spotify State
         let spotifyUser = null;
@@ -767,7 +814,12 @@
         const audioPlayer = document.getElementById('audioPlayer');
         const playerContainer = document.getElementById('playerContainer');
         const statusDiv = document.getElementById('status');
-        const songBtns = document.querySelectorAll('.song-btn');
+
+        // YouTube DOM Elements
+        const youtubePlayerWrapper = document.getElementById('youtubePlayerWrapper');
+        const ytGenreBtns = document.querySelectorAll('#ytGenreList .song-btn');
+        const ytCustomInputGroup = document.getElementById('ytCustomInputGroup');
+        const ytCustomUrlInput = document.getElementById('ytCustomUrl');
 
         // Spotify DOM Elements
         const redirectUriDisplay = document.getElementById('redirectUriDisplay');
@@ -828,6 +880,10 @@
             if (isPlaying) {
                 stopPlayback();
             }
+            if (tabName !== 'youtube' && youtubePlayerWrapper) {
+                youtubePlayerWrapper.style.display = 'none';
+            }
+            updateSessionStats();
             updateStatusForCurrentState();
         }
 
@@ -858,6 +914,14 @@
                     sessionStatsText.textContent = '';
                     resetSessionBtn.style.display = 'none';
                 }
+            } else if (activeTab === 'youtube') {
+                if (roundsPlayed > 0) {
+                    sessionStatsText.textContent = `Rounds played: ${roundsPlayed} (${ytSessionPlayedVideoIds.size} unique tracks played)`;
+                    resetSessionBtn.style.display = 'inline';
+                } else {
+                    sessionStatsText.textContent = '';
+                    resetSessionBtn.style.display = 'none';
+                }
             } else {
                 sessionStatsText.textContent = '';
                 resetSessionBtn.style.display = 'none';
@@ -867,6 +931,8 @@
         resetSessionBtn.addEventListener('click', () => {
             sessionPlayedTrackIds.clear();
             lastPlayedTrackId = null;
+            ytSessionPlayedVideoIds.clear();
+            lastPlayedYtVideoId = null;
             roundsPlayed = 0;
             updateSessionStats();
             showStatus('Game session history reset.', 'ready');
@@ -1544,18 +1610,216 @@
                 } else {
                     showStatus('Ready to play! Choose duration and click Start Game.', 'ready');
                 }
+            } else if (activeTab === 'youtube') {
+                showStatus('YouTube ready! Choose a genre and click Start Game.', 'ready');
             } else if (activeTab === 'upload') {
                 if (currentAudioUrl) {
                     showStatus('Audio file loaded. Ready to play!', 'ready');
                 } else {
                     showStatus('Upload an audio file to begin.', 'ready');
                 }
-            } else if (activeTab === 'preset') {
-                if (currentAudioUrl) {
-                    showStatus('Preset song selected. Ready to play!', 'ready');
-                } else {
-                    showStatus('Select a sample song to begin.', 'ready');
+            }
+        }
+        // ==========================================
+        // YouTube Player Engine (100% Free & No Login)
+        // ==========================================
+        const YOUTUBE_GENRE_TRACKS = {
+            bollywood: [
+                { title: 'Kala Chashma (Baar Baar Dekho)', videoId: 'k4yXQkGLeAA', startSeconds: 40 },
+                { title: 'Badtameez Dil (Yeh Jawaani Hai Deewani)', videoId: 'II2EO3Nw4m0', startSeconds: 38 },
+                { title: 'Gallan Goodiyaan (Dil Dhadakne Do)', videoId: 'jCEdTq3j-0U', startSeconds: 35 },
+                { title: 'Kar Gayi Chull (Kapoor & Sons)', videoId: 'NTHz9ephYTw', startSeconds: 30 },
+                { title: 'London Thumakda (Queen)', videoId: 'v_X4r5r-vj0', startSeconds: 33 },
+                { title: 'Aankh Marey (Simmba)', videoId: '_KhQT-LGb-4', startSeconds: 36 },
+                { title: 'Dilliwaali Girlfriend (Yeh Jawaani Hai Deewani)', videoId: '1cDoRqPn9mM', startSeconds: 42 },
+                { title: 'Ghungroo (War)', videoId: 'qFkNATtc3mc', startSeconds: 45 }
+            ],
+            pop: [
+                { title: 'Levitating - Dua Lipa', videoId: 'TUVcZfQe-Kw', startSeconds: 22 },
+                { title: 'Blinding Lights - The Weeknd', videoId: '4NRXx6U8ABQ', startSeconds: 28 },
+                { title: 'Uptown Funk - Mark Ronson ft. Bruno Mars', videoId: 'OPf0YbXqDm0', startSeconds: 48 },
+                { title: 'Shape of You - Ed Sheeran', videoId: 'JGwWNGJdvx8', startSeconds: 35 },
+                { title: 'Can\'t Stop the Feeling! - Justin Timberlake', videoId: 'ru0K8uYEZWw', startSeconds: 34 },
+                { title: 'Party Rock Anthem - LMFAO', videoId: 'PWgvGjAhvIw', startSeconds: 60 },
+                { title: 'Sugar - Maroon 5', videoId: '09R8_2nJwqg', startSeconds: 42 }
+            ],
+            retro: [
+                { title: 'Rasputin - Boney M.', videoId: '16y1AkoZkmQ', startSeconds: 35 },
+                { title: 'Dancing Queen - ABBA', videoId: 'xI58344Xau8', startSeconds: 18 },
+                { title: 'Don\'t Stop Me Now - Queen', videoId: 'HgzGwKwLmgM', startSeconds: 35 },
+                { title: 'Stayin\' Alive - Bee Gees', videoId: 'I_izvAbhExY', startSeconds: 20 },
+                { title: 'I Gotta Feeling - Black Eyed Peas', videoId: 'uSD4vsh1zDA', startSeconds: 50 },
+                { title: 'Hips Don\'t Lie - Shakira', videoId: 'DUT5rEU6pqM', startSeconds: 26 }
+            ]
+        };
+
+        function extractYouTubeVideoId(url) {
+            if (!url) return null;
+            const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/i);
+            if (match && match[1]) return match[1];
+            if (/^[\w-]{11}$/.test(url.trim())) return url.trim();
+            return null;
+        }
+
+        function extractYouTubePlaylistId(url) {
+            if (!url) return null;
+            const match = url.match(/[?&]list=([^#&?]+)/i);
+            return match ? match[1] : null;
+        }
+
+        function selectNextYouTubeTrack(genre) {
+            if (genre === 'custom') {
+                const customVal = ytCustomUrlInput ? ytCustomUrlInput.value.trim() : '';
+                if (!customVal) {
+                    return { error: 'Please enter a YouTube video or playlist link.' };
                 }
+                const playlistId = extractYouTubePlaylistId(customVal);
+                const videoId = extractYouTubeVideoId(customVal);
+
+                if (playlistId) {
+                    return { isPlaylist: true, playlistId: playlistId };
+                } else if (videoId) {
+                    return { isPlaylist: false, videoId: videoId, title: 'Custom YouTube Video', startSeconds: 0 };
+                } else {
+                    return { error: 'Invalid YouTube link. Please paste a valid YouTube video or playlist URL.' };
+                }
+            }
+
+            const trackList = YOUTUBE_GENRE_TRACKS[genre] || YOUTUBE_GENRE_TRACKS['bollywood'];
+            if (!trackList || trackList.length === 0) return null;
+
+            if (trackList.length === 1) {
+                return { track: trackList[0], isSingleTrack: true };
+            }
+
+            let candidates = trackList.filter(t => t.videoId !== lastPlayedYtVideoId);
+            const unplayed = candidates.filter(t => !ytSessionPlayedVideoIds.has(t.videoId));
+            if (unplayed.length > 0) {
+                candidates = unplayed;
+            } else if (candidates.length === 0) {
+                ytSessionPlayedVideoIds.clear();
+                candidates = trackList.filter(t => t.videoId !== lastPlayedYtVideoId);
+                if (candidates.length === 0) candidates = trackList;
+            }
+
+            const selected = candidates[Math.floor(Math.random() * candidates.length)];
+            return { track: selected, isSingleTrack: false };
+        }
+
+        window.onYouTubeIframeAPIReady = function() {
+            ytPlayer = new YT.Player('youtubePlayerEmbed', {
+                height: '100%',
+                width: '100%',
+                playerVars: {
+                    'playsinline': 1,
+                    'autoplay': 0,
+                    'controls': 1,
+                    'rel': 0,
+                    'origin': window.location.origin
+                },
+                events: {
+                    'onReady': () => {
+                        ytPlayerReady = true;
+                    },
+                    'onStateChange': onYtPlayerStateChange,
+                    'onError': (event) => {
+                        console.warn('YouTube Player error code:', event.data);
+                        showStatus('YouTube playback error. Try another song or playlist.', 'error');
+                        isStarting = false;
+                        startBtn.disabled = false;
+                    }
+                }
+            });
+        };
+
+        function onYtPlayerStateChange(event) {
+            // YT.PlayerState.PLAYING is 1
+            if (event.data === 1 && isStarting) {
+                isPlaying = true;
+                isStarting = false;
+                startBtn.disabled = false;
+
+                const duration = getRandomDuration();
+                showStatus(`🎵 Music Playing! Will stop in ${duration} seconds...`, 'playing');
+
+                clearGameTimer();
+                stopTimeout = setTimeout(() => {
+                    stopPlayback(false);
+                }, duration * 1000);
+            }
+        }
+
+        async function startYouTubeRound() {
+            if (!ytPlayerReady || !ytPlayer) {
+                if (window.YT && window.YT.Player) {
+                    window.onYouTubeIframeAPIReady();
+                }
+                showStatus('YouTube player is preparing. Please click Start Game again in a moment...', 'ready');
+                return;
+            }
+
+            const selection = selectNextYouTubeTrack(selectedYtGenre);
+            if (!selection) {
+                showStatus('No tracks available for this genre.', 'error');
+                return;
+            }
+            if (selection.error) {
+                showStatus(selection.error, 'error');
+                return;
+            }
+
+            isStarting = true;
+            startBtn.disabled = true;
+            showStatus('Starting YouTube music at chorus...', 'starting');
+
+            // Set up player display
+            spotifyNowPlaying.style.display = 'none';
+            audioPlayer.style.display = 'none';
+            youtubePlayerWrapper.style.display = 'block';
+            playerContainer.classList.add('active');
+
+            try {
+                if (selection.isPlaylist) {
+                    roundsPlayed++;
+                    updateSessionStats();
+                    ytPlayer.loadPlaylist({
+                        list: selection.playlistId,
+                        listType: 'playlist',
+                        index: Math.floor(Math.random() * 10)
+                    });
+                } else {
+                    const trackObj = selection.track || selection;
+                    lastPlayedYtVideoId = trackObj.videoId;
+                    ytSessionPlayedVideoIds.add(trackObj.videoId);
+                    roundsPlayed++;
+                    updateSessionStats();
+
+                    ytPlayer.loadVideoById({
+                        videoId: trackObj.videoId,
+                        startSeconds: trackObj.startSeconds || 0
+                    });
+                }
+
+                // Fallback timer: in case onStateChange takes a moment or autoplay restrictions apply
+                setTimeout(() => {
+                    if (isStarting && !isPlaying) {
+                        isPlaying = true;
+                        isStarting = false;
+                        startBtn.disabled = false;
+                        const duration = getRandomDuration();
+                        showStatus(`🎵 Music Playing! Will stop in ${duration} seconds...`, 'playing');
+                        clearGameTimer();
+                        stopTimeout = setTimeout(() => {
+                            stopPlayback(false);
+                        }, duration * 1000);
+                    }
+                }, 2200);
+
+            } catch (err) {
+                console.error('Error starting YouTube playback:', err);
+                isStarting = false;
+                startBtn.disabled = false;
+                showStatus(`Error playing YouTube music: ${err.message}`, 'error');
             }
         }
 
@@ -1910,6 +2174,13 @@
                 nowPlayingHook.style.display = 'none';
             }
 
+            // Stop YouTube playback if active
+            if (activeTab === 'youtube' && ytPlayer && ytPlayerReady) {
+                try {
+                    ytPlayer.pauseVideo();
+                } catch (e) {}
+            }
+
             // Stop local audio if active
             try {
                 audioPlayer.pause();
@@ -1945,10 +2216,12 @@
 
             clearGameTimer();
 
-            if (activeTab === 'spotify') {
+            if (activeTab === 'youtube') {
+                startYouTubeRound();
+            } else if (activeTab === 'spotify') {
                 const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
                 if (!token) {
-                    showStatus('Please connect to Spotify first or switch to Local/Preset tabs.', 'error');
+                    showStatus('Please connect to Spotify first or switch to YouTube or Upload tabs.', 'error');
                     return;
                 }
                 startSpotifyRound();
@@ -1962,8 +2235,23 @@
         });
 
         // ==========================================
-        // Event Listeners: Local File & Presets
+        // Event Listeners: YouTube & Local Audio
         // ==========================================
+        ytGenreBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                ytGenreBtns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedYtGenre = btn.dataset.genre;
+                if (selectedYtGenre === 'custom') {
+                    ytCustomInputGroup.style.display = 'block';
+                } else {
+                    ytCustomInputGroup.style.display = 'none';
+                }
+                const genreName = btn.textContent.trim().split('(')[0].trim();
+                showStatus(`Selected: ${genreName}. Ready to play!`, 'ready');
+            });
+        });
+
         audioFile.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -1971,16 +2259,6 @@
                 currentAudioStartOffset = null; // will auto-calculate upon play
                 showStatus('Audio file selected. Ready to play!', 'ready');
             }
-        });
-
-        songBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                songBtns.forEach(b => b.classList.remove('selected'));
-                btn.classList.add('selected');
-                currentAudioUrl = btn.dataset.url;
-                currentAudioStartOffset = btn.dataset.start ? parseFloat(btn.dataset.start) : null;
-                showStatus('Sample song selected. Ready to play!', 'ready');
-            });
         });
 
         // ==========================================
