@@ -495,7 +495,12 @@ class TestPassThePillow(unittest.TestCase):
         # Playlist URL variants
         self.assertEqual(extract_playlist_id("https://www.youtube.com/playlist?list=PL1234567890"), "PL1234567890")
         self.assertEqual(extract_playlist_id("https://www.youtube.com/watch?v=k4yXQkGLeAA&list=PL1234567890"), "PL1234567890")
+        self.assertEqual(extract_playlist_id("https://www.youtube.com/watch?v=xWi8nDUjHGA&list=PLnGRV05XmAq2xzqAI9kr-9o11J7uLS19w"), "PLnGRV05XmAq2xzqAI9kr-9o11J7uLS19w")
+        self.assertEqual(extract_video_id("https://www.youtube.com/watch?v=xWi8nDUjHGA&list=PLnGRV05XmAq2xzqAI9kr-9o11J7uLS19w"), "xWi8nDUjHGA")
         self.assertIsNone(extract_playlist_id("https://www.youtube.com/watch?v=k4yXQkGLeAA"))
+
+    def test_html_contains_first_bollywood_playlist(self):
+        self.assertIn("PLnGRV05XmAq2xzqAI9kr-9o11J7uLS19w", self.html_content)
 
     def test_youtube_track_selection_simulation(self):
         """Test that YouTube genre track selection avoids consecutive repetition."""
