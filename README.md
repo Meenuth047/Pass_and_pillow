@@ -29,7 +29,7 @@ Requirements: A Spotify Premium account is required for third-party playback.
 
 ---
 
-## 100% Free YouTube Mode (No Spotify Premium or Login Needed)
+## YouTube Mode 
 
 If you do not have Spotify Premium or do not wish to log in:
 
