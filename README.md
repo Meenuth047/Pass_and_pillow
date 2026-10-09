@@ -4,12 +4,6 @@ Live Website: https://pass-and-pillow.onrender.com
 
 Pass the Pillow is an automated, web-based party game application designed to eliminate bias and keep classic party games fair and unpredictable.
 
-## Origin Story
-
-The project originated during a gathering with friends and family. A group decided to play the classic party game "Pass the Pillow", but the traditional setup required a designated person to manually play and pause music. This created an unavoidable fairness issue: the person controlling the music could anticipate or observe who held the pillow and deliberately choose when to pause, influencing the outcome of the round. 
-
-Searching online for an automated tool revealed plenty of generic countdown timers, but none tailored specifically to this use case--namely, an app that plays real music from a playlist at random and halts abruptly at an unpredictable moment without human intervention. This project was built to solve that problem, giving every player, including the host, an equal opportunity to participate.
-
 ## Step 1: Open the Game
 
 Open https://pass-and-pillow.onrender.com in your mobile browser or desktop browser.
