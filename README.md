@@ -53,10 +53,21 @@ Click the "Upload Music" tab to upload any audio file directly from your phone o
 
 ## Architecture and Technology Choices
 
-The application is structured as a client-side Single-Page Application (SPA) contained within `main.html`:
+The application is structured as a client-side Single-Page Application (SPA) located in `src/`:
 
 - Vanilla HTML5, CSS3, and JavaScript: Eliminates complex build tools, external runtime dependencies, bundlers, and backend servers.
 - Web Crypto API: Provides cryptographically secure random values and SHA-256 digest calculation for PKCE code verifiers and code challenges (`crypto.getRandomValues`, `crypto.subtle.digest`).
 - Spotify Web API: Communicates via HTTP requests (`fetch`) for user profile, playlist retrieval, device enumeration, and playback control (`/v1/me/player/play`, `/v1/me/player/pause`).
 - Spotify Web Playback SDK (`https://sdk.scdn.co/spotify-player.js`): Creates a local browser playback device for desktop environments.
 - HTML5 Audio API: Powers the offline fallback player via `URL.createObjectURL(file)` and native `<audio>` element controls.
+
+## Repository Structure
+
+- `src/`: Contains source code and configuration files (`index.html`, `main.html`, `render.yaml`, `test_suite.py`).
+- `doc/`: Contains detailed guides (`Installation.md`).
+- `README.md`: Project overview and quick start guide.
+
+## Documentation
+
+For full step-by-step setup, Render deployment instructions, and troubleshooting:
+- [Installation and Deployment Guide](doc/Installation.md)
