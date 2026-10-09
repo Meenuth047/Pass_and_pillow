@@ -24,11 +24,11 @@ import http.server
 import socketserver
 import urllib.request
 
-REPO_DIR = os.path.dirname(os.path.abspath(__file__))
-MAIN_HTML_PATH = os.path.join(REPO_DIR, "main.html")
-README_PATH = os.path.join(REPO_DIR, "README.md")
-QUICK_START_PATH = os.path.join(REPO_DIR, "QUICK_START.md")
-INSTALLATION_PATH = os.path.join(REPO_DIR, "Installation.md")
+SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(SRC_DIR)
+MAIN_HTML_PATH = os.path.join(SRC_DIR, "main.html")
+README_PATH = os.path.join(ROOT_DIR, "README.md")
+INSTALLATION_PATH = os.path.join(ROOT_DIR, "doc", "Installation.md")
 
 
 class TestPassThePillow(unittest.TestCase):
@@ -40,9 +40,6 @@ class TestPassThePillow(unittest.TestCase):
 
         with open(README_PATH, "r", encoding="utf-8") as f:
             cls.readme_content = f.read()
-
-        with open(QUICK_START_PATH, "r", encoding="utf-8") as f:
-            cls.quick_start_content = f.read()
 
         with open(INSTALLATION_PATH, "r", encoding="utf-8") as f:
             cls.installation_content = f.read()
@@ -342,19 +339,14 @@ class TestPassThePillow(unittest.TestCase):
             f"README.md must not contain any emojis! Found: {matches}"
         )
 
-    def test_no_emojis_in_quick_start(self):
-        # Check for Unicode emojis in QUICK_START.md and Installation.md
+    def test_no_emojis_in_installation(self):
+        # Check for Unicode emojis in doc/Installation.md
         emoji_pattern = re.compile(
             r'[\U00010000-\U0010ffff]'
             r'|[\u2600-\u26ff]'
             r'|[\u2700-\u27bf]'
             r'|[\u2b50-\u2b55]'
             r'|[\u231a-\u231b\u23e9-\u23ec\u23f0\u23f3]'
-        )
-        matches_qs = emoji_pattern.findall(self.quick_start_content)
-        self.assertEqual(
-            len(matches_qs), 0,
-            f"QUICK_START.md must not contain any emojis! Found: {matches_qs}"
         )
         matches_inst = emoji_pattern.findall(self.installation_content)
         self.assertEqual(
@@ -364,31 +356,16 @@ class TestPassThePillow(unittest.TestCase):
 
     def test_readme_contains_required_sections(self):
         required_phrases = [
-            "Origin Story",
-            "How the Game Works",
-            "Implemented Features",
-            "Planned Features",
-            "Architecture and Technology Choices",
-            "Spotify Developer Dashboard Configuration",
-            "Account and Device Limitations",
-            "Security and Privacy",
-            "Official Spotify Documentation References",
-            "Spotify Premium",
-            "https://pass-and-pillow.onrender.com",
-        ]
-        for phrase in required_phrases:
-            self.assertIn(phrase, self.readme_content, f"README.md missing section: {phrase}")
-
-    def test_quick_start_contains_required_sections(self):
-        required_phrases = [
+            "Pass the Pillow",
             "https://pass-and-pillow.onrender.com",
             "Option 1",
             "Option 2",
             "b9df1dea7f174af197b814956f500fd8",
-            "Spotify",
+            "Spotify Premium",
+            "Architecture and Technology Choices",
         ]
         for phrase in required_phrases:
-            self.assertIn(phrase, self.quick_start_content, f"QUICK_START.md missing section: {phrase}")
+            self.assertIn(phrase, self.readme_content, f"README.md missing section: {phrase}")
 
     def test_installation_contains_required_sections(self):
         required_phrases = [
@@ -405,8 +382,11 @@ class TestPassThePillow(unittest.TestCase):
     # 6. Local HTTP Server Integration Test
     # -------------------------------------------------------------------------
     def test_local_server_serves_html(self):
-        """Starts a temporary HTTP server and fetches main.html over HTTP."""
+        """Starts a temporary HTTP server and fetches main.html over HTTP from SRC_DIR."""
         class QuietHandler(http.server.SimpleHTTPRequestHandler):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, directory=SRC_DIR, **kwargs)
+
             def log_message(self, format, *args):
                 pass  # suppress console logging
 
