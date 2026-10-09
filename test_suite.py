@@ -28,6 +28,7 @@ REPO_DIR = os.path.dirname(os.path.abspath(__file__))
 MAIN_HTML_PATH = os.path.join(REPO_DIR, "main.html")
 README_PATH = os.path.join(REPO_DIR, "README.md")
 QUICK_START_PATH = os.path.join(REPO_DIR, "QUICK_START.md")
+INSTALLATION_PATH = os.path.join(REPO_DIR, "Installation.md")
 
 
 class TestPassThePillow(unittest.TestCase):
@@ -42,6 +43,9 @@ class TestPassThePillow(unittest.TestCase):
 
         with open(QUICK_START_PATH, "r", encoding="utf-8") as f:
             cls.quick_start_content = f.read()
+
+        with open(INSTALLATION_PATH, "r", encoding="utf-8") as f:
+            cls.installation_content = f.read()
 
     # -------------------------------------------------------------------------
     # 1. HTML DOM Structure & UI Elements
@@ -339,7 +343,7 @@ class TestPassThePillow(unittest.TestCase):
         )
 
     def test_no_emojis_in_quick_start(self):
-        # Check for Unicode emojis in QUICK_START.md
+        # Check for Unicode emojis in QUICK_START.md and Installation.md
         emoji_pattern = re.compile(
             r'[\U00010000-\U0010ffff]'
             r'|[\u2600-\u26ff]'
@@ -347,10 +351,15 @@ class TestPassThePillow(unittest.TestCase):
             r'|[\u2b50-\u2b55]'
             r'|[\u231a-\u231b\u23e9-\u23ec\u23f0\u23f3]'
         )
-        matches = emoji_pattern.findall(self.quick_start_content)
+        matches_qs = emoji_pattern.findall(self.quick_start_content)
         self.assertEqual(
-            len(matches), 0,
-            f"QUICK_START.md must not contain any emojis! Found: {matches}"
+            len(matches_qs), 0,
+            f"QUICK_START.md must not contain any emojis! Found: {matches_qs}"
+        )
+        matches_inst = emoji_pattern.findall(self.installation_content)
+        self.assertEqual(
+            len(matches_inst), 0,
+            f"Installation.md must not contain any emojis! Found: {matches_inst}"
         )
 
     def test_readme_contains_required_sections(self):
@@ -365,11 +374,23 @@ class TestPassThePillow(unittest.TestCase):
             "Security and Privacy",
             "Official Spotify Documentation References",
             "Spotify Premium",
+            "https://pass-and-pillow.onrender.com",
         ]
         for phrase in required_phrases:
             self.assertIn(phrase, self.readme_content, f"README.md missing section: {phrase}")
 
     def test_quick_start_contains_required_sections(self):
+        required_phrases = [
+            "https://pass-and-pillow.onrender.com",
+            "Option 1",
+            "Option 2",
+            "b9df1dea7f174af197b814956f500fd8",
+            "Spotify",
+        ]
+        for phrase in required_phrases:
+            self.assertIn(phrase, self.quick_start_content, f"QUICK_START.md missing section: {phrase}")
+
+    def test_installation_contains_required_sections(self):
         required_phrases = [
             "Launching the Application",
             "Developer Setup in Spotify Dashboard",
@@ -378,7 +399,7 @@ class TestPassThePillow(unittest.TestCase):
             "Redirect URI",
         ]
         for phrase in required_phrases:
-            self.assertIn(phrase, self.quick_start_content, f"QUICK_START.md missing section: {phrase}")
+            self.assertIn(phrase, self.installation_content, f"Installation.md missing section: {phrase}")
 
     # -------------------------------------------------------------------------
     # 6. Local HTTP Server Integration Test
