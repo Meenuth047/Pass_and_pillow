@@ -51,6 +51,23 @@ class TestPassThePillow(unittest.TestCase):
         self.assertIn("<!DOCTYPE html>", self.html_content)
         self.assertIn("<title>Pass the Pillow Game</title>", self.html_content)
         self.assertIn("https://sdk.scdn.co/spotify-player.js", self.html_content)
+        self.assertIn("https://www.youtube.com/iframe_api", self.html_content)
+
+    def test_youtube_ui_elements_exist(self):
+        required_elements = [
+            'id="youtubeTab"',
+            'id="youtubePlayerWrapper"',
+            'id="youtubePlayerEmbed"',
+            'id="ytGenreList"',
+            'data-genre="bollywood"',
+            'data-genre="pop"',
+            'data-genre="retro"',
+            'data-genre="custom"',
+            'id="ytCustomInputGroup"',
+            'id="ytCustomUrl"',
+        ]
+        for elem in required_elements:
+            self.assertIn(elem, self.html_content, f"Missing required YouTube element: {elem}")
 
     def test_spotify_ui_elements_exist(self):
         required_elements = [
@@ -85,12 +102,12 @@ class TestPassThePillow(unittest.TestCase):
             self.assertIn(elem, self.html_content, f"Missing required element: {elem}")
 
     def test_tabs_configuration(self):
+        self.assertIn('data-tab="youtube"', self.html_content)
         self.assertIn('data-tab="spotify"', self.html_content)
         self.assertIn('data-tab="upload"', self.html_content)
-        self.assertIn('data-tab="preset"', self.html_content)
+        self.assertIn('id="youtubeTab"', self.html_content)
         self.assertIn('id="spotifyTab"', self.html_content)
         self.assertIn('id="uploadTab"', self.html_content)
-        self.assertIn('id="presetTab"', self.html_content)
 
     def test_duration_buttons_configuration(self):
         expected_ranges = [
@@ -454,8 +471,70 @@ class TestPassThePillow(unittest.TestCase):
         self.assertIn('getSmartStartOffset', self.html_content)
         self.assertIn('parseLrcForHook', self.html_content)
         self.assertIn('nowPlayingHook', self.html_content)
-        self.assertIn('data-start="32"', self.html_content)
+        self.assertIn('startSeconds', self.html_content)
         self.assertIn('seekSpotifyPlayback', self.html_content)
+
+    def test_youtube_url_parsing(self):
+        def extract_video_id(url):
+            if not url: return None
+            m = re.search(r'(?:youtu\.be/|youtube\.com/(?:embed/|v/|watch\?v=|watch\?.+&v=))([\w-]{11})', url, re.IGNORECASE)
+            if m: return m.group(1)
+            if re.match(r'^[\w-]{11}$', url.strip()): return url.strip()
+            return None
+
+        def extract_playlist_id(url):
+            if not url: return None
+            m = re.search(r'[?&]list=([^#&?]+)', url, re.IGNORECASE)
+            return m.group(1) if m else None
+
+        # Video URL variants
+        self.assertEqual(extract_video_id("https://www.youtube.com/watch?v=k4yXQkGLeAA"), "k4yXQkGLeAA")
+        self.assertEqual(extract_video_id("https://youtu.be/k4yXQkGLeAA"), "k4yXQkGLeAA")
+        self.assertEqual(extract_video_id("https://www.youtube.com/embed/k4yXQkGLeAA"), "k4yXQkGLeAA")
+        self.assertEqual(extract_video_id("k4yXQkGLeAA"), "k4yXQkGLeAA")
+
+        # Playlist URL variants
+        self.assertEqual(extract_playlist_id("https://www.youtube.com/playlist?list=PL1234567890"), "PL1234567890")
+        self.assertEqual(extract_playlist_id("https://www.youtube.com/watch?v=k4yXQkGLeAA&list=PL1234567890"), "PL1234567890")
+        self.assertIsNone(extract_playlist_id("https://www.youtube.com/watch?v=k4yXQkGLeAA"))
+
+    def test_youtube_track_selection_simulation(self):
+        """Test that YouTube genre track selection avoids consecutive repetition."""
+        tracks = [
+            {"videoId": "v1", "title": "Song 1", "startSeconds": 30},
+            {"videoId": "v2", "title": "Song 2", "startSeconds": 40},
+            {"videoId": "v3", "title": "Song 3", "startSeconds": 35},
+        ]
+
+        class YtSelectorSim:
+            def __init__(self, track_list):
+                self.tracks = track_list
+                self.played = set()
+                self.last_played = None
+
+            def select(self):
+                candidates = [t for t in self.tracks if t["videoId"] != self.last_played]
+                unplayed = [t for t in candidates if t["videoId"] not in self.played]
+                if unplayed:
+                    candidates = unplayed
+                elif not candidates:
+                    self.played.clear()
+                    candidates = [t for t in self.tracks if t["videoId"] != self.last_played]
+                    if not candidates: candidates = self.tracks
+                chosen = random.choice(candidates)
+                self.last_played = chosen["videoId"]
+                self.played.add(chosen["videoId"])
+                return chosen
+
+        sim = YtSelectorSim(tracks)
+        history = [sim.select()["videoId"] for _ in range(100)]
+        for i in range(1, len(history)):
+            self.assertNotEqual(history[i], history[i-1], f"Consecutive repetition at round {i}")
+
+    def test_main_and_index_html_synchronized(self):
+        with open(os.path.join(SRC_DIR, "index.html"), "r", encoding="utf-8") as f:
+            index_content = f.read()
+        self.assertEqual(self.html_content, index_content, "src/main.html and src/index.html must be identical")
 
     # -------------------------------------------------------------------------
     # 7. Local HTTP Server Integration Test
