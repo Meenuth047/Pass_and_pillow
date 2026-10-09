@@ -2,9 +2,6 @@
 
 Live Website: https://pass-and-pillow.onrender.com
 
-For a quick 1-minute guide to start playing, see [QUICK_START.md](QUICK_START.md).
-For detailed deployment and local server instructions, see [Installation.md](Installation.md).
-
 Pass the Pillow is an automated, web-based party game application designed to eliminate bias and keep classic party games fair and unpredictable.
 
 ## Origin Story
@@ -13,52 +10,52 @@ The project originated during a gathering with friends and family. A group decid
 
 Searching online for an automated tool revealed plenty of generic countdown timers, but none tailored specifically to this use case--namely, an app that plays real music from a playlist at random and halts abruptly at an unpredictable moment without human intervention. This project was built to solve that problem, giving every player, including the host, an equal opportunity to participate.
 
-## Development and Testing Guidance
+## Step 1: Open the Game
 
-### Live Deployment on Render (Mobile and Web)
+Open https://pass-and-pillow.onrender.com in your mobile browser or desktop browser.
 
-For public access on mobile phones or other devices without running a local server:
+---
 
-1. Log in to the Render Dashboard at https://dashboard.render.com.
-2. Click "New +" and select "Static Site".
-3. Connect your repository.
-4. Set Publish Directory to `.` and leave Build Command blank.
-5. Click "Create Static Site".
-6. Copy your live Render URL (for example: `https://your-service-name.onrender.com`).
-7. In the Spotify Developer Dashboard (https://developer.spotify.com/dashboard), add your live Render URL to your app Redirect URIs:
-   - `https://your-service-name.onrender.com/`
-   - `https://your-service-name.onrender.com/index.html`
+## Option 1: Quick Play (Use Author's App)
 
-A `render.yaml` configuration file is included in the repository for automated Render Blueprint deployment.
+To start playing immediately without setting up a developer account:
 
-### Local Development (Optional)
+1. On the Spotify tab, paste this Client ID:
+   ```
+   b9df1dea7f174af197b814956f500fd8
+   ```
+2. Click "Connect with Spotify" and log in with your Spotify account.
+3. Select your playback device:
+   - On Desktop: In-browser Web Player.
+   - On Mobile: Open the Spotify app on your phone, start playing briefly, and choose your phone from the device dropdown.
+4. Select a playlist from your library.
+5. Choose a stop duration (10-20s, 20-30s, 30-40s, or 40-60s).
+6. Click "Start Game" and pass the pillow!
 
-To run the application locally using Python standard library:
+---
 
-```bash
-# Navigate to the project directory
-cd /path/to/Pass_and_pillow
+## Option 2: Play with Your Own Spotify App & Personal Songs
 
-# Start a local HTTP server
-python3 -m http.server 8000
+If you want to use your own Spotify Developer credentials:
 
-# Open in your browser:
-# http://127.0.0.1:8000/
-```
+Requirements: A Spotify Premium account is required for third-party playback.
 
-### Running Test Verification
+1. Go to the Spotify Developer Dashboard:
+   https://developer.spotify.com/dashboard
+2. Click "Create App", enter an app name (such as "Pass the Pillow"), and select "Web API" and "Web Playback SDK".
+3. Under "Redirect URIs", add these three URIs:
+   - `https://pass-and-pillow.onrender.com/`
+   - `https://pass-and-pillow.onrender.com`
+   - `https://pass-and-pillow.onrender.com/index.html`
+4. Click "Add" for each, then scroll down and click "Save".
+5. Copy your Client ID from the dashboard overview.
+6. Open https://pass-and-pillow.onrender.com, paste your personal Client ID, and click "Connect with Spotify".
 
-The repository includes an automated verification test suite:
+---
 
-```bash
-python3 test_suite.py
-```
-### Planned Features
+## Offline Alternative (No Spotify Needed)
 
-- Multiplayer scorekeeping and player elimination brackets.
-- Sound effects for countdowns and buzzer tones.
-- Custom stop duration range sliders.
-- Collaborative playlist voting and party room sharing via WebRTC.
+Click the "Upload Music" tab to upload any audio file directly from your phone or computer.
 
 ## Architecture and Technology Choices
 
