@@ -35,7 +35,7 @@ If you do not have Spotify Premium or do not wish to log in:
 
 1. Click the "YouTube (Free)" tab (active by default).
 2. Choose one of the curated party collections:
-   - Bollywood Party Hits (Kala Chashma, Badtameez Dil, Gallan Goodiyaan, etc.)
+   - Bollywood Party Hits (Dil Chori, Kala Chashma, Abhi Toh Party Shuru Hui Hai, etc.)
    - Global Pop Hits (Levitating, Blinding Lights, Uptown Funk, etc.)
    - 2000s and Retro Hits (Rasputin, Dancing Queen, Don't Stop Me Now, etc.)
    - Or select "Custom YouTube Playlist or Video Link" and paste any public YouTube link.
