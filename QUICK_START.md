@@ -1,79 +1,73 @@
-# Pass the Pillow: Quick Start
+# Quick Start Guide: Pass the Pillow
 
-This guide covers the current local-file version. Spotify instructions
-apply after Spotify integration has been implemented.
+## Launching the Application
 
-## Play the current version
+1. Open a terminal in the project directory:
+   ```bash
+   cd /path/to/Pass_and_pillow
+   ```
+2. Start a local HTTP server using Python:
+   ```bash
+   python3 -m http.server 8000
+   ```
+3. Open your browser and navigate to:
+   ```
+   http://127.0.0.1:8000/main.html
+   ```
 
-1.  Open `main.html` in a modern browser.
-2.  Choose **Upload Music** and select an audio file, or select a preset
-    track if available.
-3.  Choose a random stop-time range.
-4.  Click **Start Game**.
-5.  Pass the pillow while the music plays.
-6.  When the music stops, follow the rules your group agreed on.
-7.  Start another round when everyone is ready.
+## Developer Setup in Spotify Dashboard
 
-For a fair game, let the automatic timer decide when to stop. Use manual
-stop only when you need to end a round early.
+To use Spotify playlists, register an application in the Spotify Developer Dashboard:
 
-## Play with Spotify (planned)
+1. Visit the Spotify Developer Dashboard at:
+   https://developer.spotify.com/dashboard
+2. Log in with your Spotify account and click "Create App".
+3. Enter an App Name (for example: "Pass the Pillow") and description.
+4. Add the exact Redirect URI where you are running the game:
+   - For local use: `http://127.0.0.1:8000/main.html`
+   - Alternatively: `http://localhost:8000/main.html`
+5. Check the boxes for "Web API" and "Web Playback SDK".
+6. Save the settings and copy the Client ID displayed on the app dashboard.
 
-Once Spotify support is implemented:
+Important: Never commit or share your Spotify Client ID in public code repositories. The application stores it only in your browser local storage.
 
-1.  Click **Connect Spotify**.
-2.  Sign in and approve the requested permissions.
-3.  Wait for playlists to load.
-4.  Select a playlist and check its preview.
-5.  Choose a stop-time range.
-6.  Click **Start Game**.
-7.  Pass the pillow until playback stops.
-8.  Start another round. The app should choose a different eligible
-    track when at least two are available.
+## Connecting Spotify and Playing
 
-## Developer setup for Spotify
+1. Open Pass the Pillow at `http://127.0.0.1:8000/main.html`.
+2. On the Spotify tab, paste your Client ID into the input field.
+3. Click "Connect with Spotify".
+4. Log in to Spotify and approve access. You will be redirected back to the game.
+5. Choose your playback device:
+   - In-browser Web Player: Plays directly in desktop Chrome, Firefox, Edge, or Safari.
+   - External device: If playing on mobile or a smart speaker, open the official Spotify app and select it from the device dropdown.
+6. Select a playlist from your library. The game displays the playlist cover, track count, and preview track list.
+7. Select a stop duration range (10-20s, 20-30s, 30-40s, or 40-60s).
+8. Click "Start Game".
+   - The game selects an eligible track at random.
+   - When playback starts, the randomized timer begins counting down.
+   - The music automatically stops when the timer expires, showing: "Music stopped. Who has the pillow?"
+   - To stop immediately at any moment, click "Stop Music Manually".
 
-1.  Create an app in the [Spotify Developer
-    Dashboard](https://developer.spotify.com/dashboard).
-2.  Configure the exact redirect URI used by the app.
-3.  Add the client ID using the configuration method documented by the
-    implementation.
-4.  Use OAuth 2.0 Authorization Code with PKCE for a browser-only
-    client. Never expose a client secret in frontend code.
-5.  Request only the scopes needed by the selected playlist and playback
-    features.
-6.  Test sign-in, playlist loading, device selection, playback, token
-    expiry, and authorization cancellation.
+## Alternative Offline Playback
 
-Spotify playback has account, device, API, and policy requirements. The
-Web Playback SDK requires Spotify Premium. Check the current official
-documentation: -
-[Authorization](https://developer.spotify.com/documentation/web-api/concepts/authorization) -
-[PKCE
-flow](https://developer.spotify.com/documentation/web-api/tutorials/code-pkce-flow) -
-[API
-scopes](https://developer.spotify.com/documentation/web-api/concepts/scopes) -
-[Web Playback
-SDK](https://developer.spotify.com/documentation/web-playback-sdk)
+If you do not have Spotify Premium or are offline:
+1. Click the "Upload Music" tab to load any local MP3, WAV, or OGG file from your computer.
+2. Or click the "Preset Songs" tab to use built-in sample audio.
+3. Select your stop duration and click "Start Game".
 
 ## Troubleshooting
 
--   **No music starts:** verify a source or playlist is selected and the
-    playback device can play audio.
--   **Spotify will not connect:** check the client ID, redirect URI,
-    network, and permissions.
--   **No playlists appear:** verify playlist permissions and check that
-    the account has playlists accessible to the app.
--   **No playback device is available:** open Spotify on a supported
-    device and activate it if required by the implementation.
--   **A track cannot play:** the app should try another eligible track
-    with a bounded retry count.
--   **A track repeats:** consecutive repetition should be avoided when
-    at least two eligible tracks are available. A one-track playlist
-    cannot meet that rule.
+- Error: "Spotify playback failed: Premium required"
+  Spotify API and Web Playback SDK strictly require a Spotify Premium subscription. Free tier accounts cannot stream through third-party web apps. Use the "Upload Music" tab for local files instead.
 
-## Fair-play note
+- Error: "Device not found or inactive"
+  If using an external device or if the in-browser Web Player is not ready, open the official Spotify app on your phone, tablet, or desktop, start playing any song briefly, pause it, and then click "Refresh" next to the device dropdown in Pass the Pillow.
 
-The stop time is selected randomly from the configured range. Agree on
-the group's rules before starting so everyone knows what happens when
-the music stops.
+- In-browser Web Player not appearing in device list
+  The Spotify Web Playback SDK requires Encrypted Media Extensions (EME) and must be served over `http://127.0.0.1`, `http://localhost`, or HTTPS. Mobile browsers (iOS Safari, Android Chrome) do not support the Web Playback SDK; use the official Spotify mobile app and Spotify Connect instead.
+
+- Error: "State verification mismatch"
+  This error indicates the authorization flow was interrupted or tampered with. Simply click "Connect with Spotify" again to initiate a fresh session.
+
+- Stuck or Stale Timers
+  Click "Stop Music Manually" or switch tabs to immediately clear all active timers and pause playback.
