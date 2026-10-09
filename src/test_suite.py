@@ -379,7 +379,85 @@ class TestPassThePillow(unittest.TestCase):
             self.assertIn(phrase, self.installation_content, f"Installation.md missing section: {phrase}")
 
     # -------------------------------------------------------------------------
-    # 6. Local HTTP Server Integration Test
+    # 6. Smart Hook & Vocal Start Engine Tests
+    # -------------------------------------------------------------------------
+    def test_lrc_parsing_detects_chorus_hook(self):
+        sample_lrc = """
+        [00:00.00] (Instrumental intro)
+        [00:15.20] I have been on my own for long enough
+        [00:23.10] I am going through withdrawals
+        [00:53.10] I said ooh I am blinded by the lights
+        [01:03.40] I said ooh I am drowning in the night
+        [01:45.00] I said ooh I am blinded by the lights
+        """
+        lines = []
+        line_counts = {}
+        time_regex = re.compile(r'\[(\d{1,2}):(\d{2}(?:\.\d+)?)\](.*)')
+        for raw in sample_lrc.strip().split('\n'):
+            m = time_regex.match(raw.strip())
+            if m:
+                mins, secs, text = int(m.group(1)), float(m.group(2)), m.group(3).strip()
+                clean = re.sub(r'[^a-zA-Z0-9\s]', '', text.lower()).strip()
+                total_sec = mins * 60 + secs
+                if clean and not clean.startswith('instrumental') and not clean.startswith('intro'):
+                    lines.append({"sec": total_sec, "text": text, "clean": clean})
+                    line_counts[clean] = line_counts.get(clean, 0) + 1
+
+        chorus_candidates = [l for l in lines if line_counts[l["clean"]] > 1 and l["sec"] >= 15]
+        self.assertTrue(len(chorus_candidates) > 0)
+        self.assertAlmostEqual(chorus_candidates[0]["sec"], 53.1)
+        self.assertIn("blinded by the lights", chorus_candidates[0]["text"])
+
+    def test_lrc_parsing_detects_first_vocal_line(self):
+        sample_lrc = """
+        [00:00.00] [Intro - Beats]
+        [00:18.40] Once upon a time in a faraway town
+        [00:24.00] Somebody walked down the street
+        [00:30.00] And nobody said a word
+        """
+        lines = []
+        time_regex = re.compile(r'\[(\d{1,2}):(\d{2}(?:\.\d+)?)\](.*)')
+        for raw in sample_lrc.strip().split('\n'):
+            m = time_regex.match(raw.strip())
+            if m:
+                mins, secs, text = int(m.group(1)), float(m.group(2)), m.group(3).strip()
+                clean = re.sub(r'[^a-zA-Z0-9\s]', '', text.lower()).strip()
+                total_sec = mins * 60 + secs
+                if clean and not clean.startswith('instrumental') and not clean.startswith('intro'):
+                    lines.append({"sec": total_sec, "text": text, "clean": clean})
+
+        first_vocal = [l for l in lines if l["sec"] >= 5]
+        self.assertTrue(len(first_vocal) > 0)
+        self.assertAlmostEqual(first_vocal[0]["sec"], 18.4)
+
+    def test_smart_start_offset_bounds_and_formula(self):
+        def calc_offset(duration_sec):
+            max_safe = max(0, duration_sec - 65)
+            fallback = round(duration_sec * 0.30)
+            if fallback > max_safe:
+                fallback = max(0, min(30, max_safe))
+            if fallback < 15 and duration_sec > 50:
+                fallback = 20
+            return fallback
+
+        # 3 minute song: ~54s chorus start
+        self.assertEqual(calc_offset(180), 54)
+        # 3.5 minute song: ~63s chorus start
+        self.assertEqual(calc_offset(210), 63)
+        # Short 40s track: safe 0s start (doesn't overshoot song length)
+        self.assertEqual(calc_offset(40), 0)
+        # 80s track: safe max start
+        self.assertTrue(calc_offset(80) <= 80 - 65)
+
+    def test_html_contains_smart_hook_elements(self):
+        self.assertIn('position_ms', self.html_content)
+        self.assertIn('getSmartStartOffset', self.html_content)
+        self.assertIn('parseLrcForHook', self.html_content)
+        self.assertIn('nowPlayingHook', self.html_content)
+        self.assertIn('data-start="32"', self.html_content)
+
+    # -------------------------------------------------------------------------
+    # 7. Local HTTP Server Integration Test
     # -------------------------------------------------------------------------
     def test_local_server_serves_html(self):
         """Starts a temporary HTTP server and fetches main.html over HTTP from SRC_DIR."""
