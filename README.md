@@ -41,6 +41,7 @@ If you do not have Spotify Premium or do not wish to log in:
    - Or select "Custom YouTube Playlist or Video Link" and paste any public YouTube link.
 3. Choose your stop duration and click "Start Game".
 4. The game automatically skips instrumental intros, starting directly at high-energy choruses.
+5. When you play using YouTube, if you see "Video unavailable", tap on "Start Game" again.
 
 ---
 
