@@ -1,7 +1,6 @@
 # Quick Start Guide: Pass the Pillow
 
 Live Website: https://pass-and-pillow.onrender.com
-(You can also click the live link in the README.md)
 
 ---
 
