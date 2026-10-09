@@ -13,16 +13,6 @@ The project originated during a gathering with friends and family. A group decid
 
 Searching online for an automated tool revealed plenty of generic countdown timers, but none tailored specifically to this use case--namely, an app that plays real music from a playlist at random and halts abruptly at an unpredictable moment without human intervention. This project was built to solve that problem, giving every player, including the host, an equal opportunity to participate.
 
-## How the Game Works
-
-1. Players sit in a circle and designate a pillow (or ball, toy, or other object) to pass.
-2. The game host connects a music source (Spotify playlist, local audio file, or preset samples).
-3. The host chooses a randomized duration range (10-20 seconds, 20-30 seconds, 30-40 seconds, or 40-60 seconds).
-4. When the host presses "Start Game", an eligible track is selected at random and begins playing.
-5. Players pass the pillow in a circle.
-6. The timer stops the music automatically at a random instant within the selected range, displaying the prompt: "Music stopped. Who has the pillow?"
-7. The player caught holding the pillow is eliminated or receives a round penalty, according to house rules.
-
 ## Development and Testing Guidance
 
 ### Live Deployment on Render (Mobile and Web)
