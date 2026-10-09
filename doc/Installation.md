@@ -88,19 +88,28 @@ Important: Never commit or share your Spotify Client ID in public code repositor
 
 ---
 
-## Alternative Offline Playback
+## 100% Free YouTube Playback (No Spotify Premium or Login Needed)
 
-If you do not have Spotify Premium or are offline:
-1. Click the "Upload Music" tab to load any local MP3, WAV, or OGG file from your device.
-2. Or click the "Preset Songs" tab to use built-in sample audio.
+If you do not have Spotify Premium or do not wish to log in:
+1. Click the "YouTube (Free)" tab.
+2. Select any party collection (Bollywood Party Hits, Global Pop Hits, 2000s & Retro Hits) or paste any YouTube video or playlist link.
 3. Select your stop duration and click "Start Game".
+4. The game starts songs directly at the chorus and automatically stops when the timer expires!
+
+---
+
+## Offline Playback (Local File Upload)
+
+If you are completely offline:
+1. Click the "Upload Music" tab to load any local MP3, WAV, or OGG file from your device.
+2. Select your stop duration and click "Start Game".
 
 ---
 
 ## Troubleshooting
 
 - Error: "Spotify playback failed: Premium required"
-  Spotify API and Web Playback SDK strictly require a Spotify Premium subscription. Free tier accounts cannot stream through third-party web apps. Use the "Upload Music" tab for local files instead.
+  Spotify API and Web Playback SDK strictly require an active Spotify Premium subscription. Free tier accounts cannot stream through third-party web apps. To play completely free with no Spotify account needed, click the "YouTube (Free)" tab or use the "Upload Music" tab.
 
 - Error: "Device not found or inactive"
   If using an external device or if playing on mobile, open the official Spotify app on your device, start playing any track briefly, pause it, and then click "Refresh" next to the device dropdown in Pass the Pillow.
