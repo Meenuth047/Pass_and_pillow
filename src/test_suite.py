@@ -376,7 +376,7 @@ class TestPassThePillow(unittest.TestCase):
             "Pass the Pillow",
             "https://pass-and-pillow.onrender.com",
             "Play with Your Own Spotify App & Personal Songs",
-            "100% Free YouTube Mode",
+            "YouTube Mode",
             "Spotify Premium",
             "Architecture and Technology Choices",
         ]
