@@ -564,9 +564,21 @@
                 <div class="input-group">
                     <label for="spotifyClientId">Spotify Client ID:</label>
                     <input type="text" id="spotifyClientId" placeholder="Enter your Spotify Developer Client ID">
+                </div>
+
+                <div class="input-group">
+                    <label for="spotifyRedirectUriInput">Redirect URI (must match Spotify Dashboard):</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="spotifyRedirectUriInput" placeholder="https://pass-and-pillow.onrender.com/">
+                        <button type="button" class="btn-secondary" id="copyRedirectUriBtn" title="Copy to clipboard">Copy</button>
+                    </div>
+                    <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
+                        <button type="button" class="btn-secondary" id="uriWithSlashBtn" style="font-size: 11px; padding: 3px 8px;">With Trailing /</button>
+                        <button type="button" class="btn-secondary" id="uriWithoutSlashBtn" style="font-size: 11px; padding: 3px 8px;">Without /</button>
+                        <button type="button" class="btn-secondary" id="uriIndexHtmlBtn" style="font-size: 11px; padding: 3px 8px;">/index.html</button>
+                    </div>
                     <p class="input-hint">
-                        From your <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">Spotify Developer Dashboard</a>. 
-                        Redirect URI must be set to: <span class="code-snippet" id="redirectUriDisplay"></span>
+                        In <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">Spotify Dashboard Settings</a>, add this exact Redirect URI: <span class="code-snippet" id="redirectUriDisplay"></span>. Click <strong>Add</strong>, then scroll down and click <strong>Save</strong>.
                     </p>
                 </div>
 
@@ -784,10 +796,79 @@
         const sessionStatsText = document.getElementById('sessionStatsText');
         const resetSessionBtn = document.getElementById('resetSessionBtn');
 
+        const spotifyRedirectUriInput = document.getElementById('spotifyRedirectUriInput');
+        const copyRedirectUriBtn = document.getElementById('copyRedirectUriBtn');
+        const uriWithSlashBtn = document.getElementById('uriWithSlashBtn');
+        const uriWithoutSlashBtn = document.getElementById('uriWithoutSlashBtn');
+        const uriIndexHtmlBtn = document.getElementById('uriIndexHtmlBtn');
+
         // Determine current redirect URI (without hash or query params)
-        const currentRedirectUri = window.location.origin + window.location.pathname;
-        if (redirectUriDisplay) {
+        const cleanOrigin = window.location.origin;
+        let currentRedirectUri = cleanOrigin + (window.location.pathname || '/');
+
+        if (spotifyRedirectUriInput) {
+            const savedUri = localStorage.getItem('pass_pillow_spotify_redirect_uri');
+            spotifyRedirectUriInput.value = savedUri || currentRedirectUri;
+            if (redirectUriDisplay) {
+                redirectUriDisplay.textContent = spotifyRedirectUriInput.value;
+            }
+            spotifyRedirectUriInput.addEventListener('input', () => {
+                const val = spotifyRedirectUriInput.value.trim();
+                if (redirectUriDisplay) redirectUriDisplay.textContent = val;
+                localStorage.setItem('pass_pillow_spotify_redirect_uri', val);
+            });
+        } else if (redirectUriDisplay) {
             redirectUriDisplay.textContent = currentRedirectUri;
+        }
+
+        if (copyRedirectUriBtn && spotifyRedirectUriInput) {
+            copyRedirectUriBtn.addEventListener('click', () => {
+                const val = spotifyRedirectUriInput.value.trim();
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(val).then(() => {
+                        copyRedirectUriBtn.textContent = 'Copied!';
+                        setTimeout(() => { copyRedirectUriBtn.textContent = 'Copy'; }, 2000);
+                    }).catch(() => fallbackCopy(spotifyRedirectUriInput));
+                } else {
+                    fallbackCopy(spotifyRedirectUriInput);
+                }
+            });
+        }
+
+        function fallbackCopy(inputEl) {
+            inputEl.select();
+            document.execCommand('copy');
+            if (copyRedirectUriBtn) {
+                copyRedirectUriBtn.textContent = 'Copied!';
+                setTimeout(() => { copyRedirectUriBtn.textContent = 'Copy'; }, 2000);
+            }
+        }
+
+        if (uriWithSlashBtn && spotifyRedirectUriInput) {
+            uriWithSlashBtn.addEventListener('click', () => {
+                const val = cleanOrigin + '/';
+                spotifyRedirectUriInput.value = val;
+                if (redirectUriDisplay) redirectUriDisplay.textContent = val;
+                localStorage.setItem('pass_pillow_spotify_redirect_uri', val);
+            });
+        }
+
+        if (uriWithoutSlashBtn && spotifyRedirectUriInput) {
+            uriWithoutSlashBtn.addEventListener('click', () => {
+                const val = cleanOrigin;
+                spotifyRedirectUriInput.value = val;
+                if (redirectUriDisplay) redirectUriDisplay.textContent = val;
+                localStorage.setItem('pass_pillow_spotify_redirect_uri', val);
+            });
+        }
+
+        if (uriIndexHtmlBtn && spotifyRedirectUriInput) {
+            uriIndexHtmlBtn.addEventListener('click', () => {
+                const val = cleanOrigin + '/index.html';
+                spotifyRedirectUriInput.value = val;
+                if (redirectUriDisplay) redirectUriDisplay.textContent = val;
+                localStorage.setItem('pass_pillow_spotify_redirect_uri', val);
+            });
         }
 
         // ==========================================
@@ -908,13 +989,19 @@
 
             const codeChallenge = await generateCodeChallenge(codeVerifier);
 
+            const selectedRedirectUri = (spotifyRedirectUriInput && spotifyRedirectUriInput.value.trim()) 
+                                     ? spotifyRedirectUriInput.value.trim() 
+                                     : currentRedirectUri;
+            localStorage.setItem('pass_pillow_spotify_redirect_uri', selectedRedirectUri);
+            sessionStorage.setItem('pass_pillow_spotify_redirect_uri', selectedRedirectUri);
+
             const authParams = new URLSearchParams({
                 response_type: 'code',
                 client_id: clientId,
                 scope: SPOTIFY_SCOPES,
                 code_challenge_method: 'S256',
                 code_challenge: codeChallenge,
-                redirect_uri: currentRedirectUri,
+                redirect_uri: selectedRedirectUri,
                 state: state
             });
 
@@ -940,6 +1027,9 @@
             const storedState = sessionStorage.getItem(STORAGE_KEYS.AUTH_STATE);
             const codeVerifier = sessionStorage.getItem(STORAGE_KEYS.CODE_VERIFIER);
             const clientId = localStorage.getItem(STORAGE_KEYS.CLIENT_ID);
+            const effectiveRedirectUri = sessionStorage.getItem('pass_pillow_spotify_redirect_uri') 
+                                      || localStorage.getItem('pass_pillow_spotify_redirect_uri') 
+                                      || currentRedirectUri;
 
             cleanUrlQuery();
 
@@ -962,7 +1052,7 @@
                     body: new URLSearchParams({
                         grant_type: 'authorization_code',
                         code: code,
-                        redirect_uri: currentRedirectUri,
+                        redirect_uri: effectiveRedirectUri,
                         client_id: clientId,
                         code_verifier: codeVerifier
                     })
